@@ -103,15 +103,12 @@ class Tetris:
             for j in range(4):
                 p = i * 4 + j
                 if p in fig.image():
-                    try:
-                        if (
-                            i + fig.y > self.height - 1  # bottom intersection
-                            # or i + fig.y < 0  #
-                            or self.field[i + fig.y][j + fig.x] > 0  # figure intersection
-                        ):
-                            intersection = True
-                    except:
-                        print("I: %d Y: %d J: %d X: %d" % (i, fig.y, j, fig.x))
+                    if (
+                        i + fig.y > self.height - 1  # bottom intersection
+                        # or i + fig.y < 0  #
+                        or self.field[i + fig.y][j + fig.x] > 0  # figure intersection
+                    ):
+                        intersection = True
         return intersection
 
     def freeze(self):
