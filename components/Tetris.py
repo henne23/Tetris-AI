@@ -12,7 +12,6 @@ class Tetris:
         self.punkte = [40, 100, 300, 1200]
         self.killedLines = 0
         self.figureAnz = 7
-        self.field = []
         self.score = 0
         self.state = START
         self.field = np.zeros((_height,_width), dtype=int)
