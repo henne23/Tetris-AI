@@ -22,8 +22,8 @@ class Experience:
         self.gameOverMemory[indexMod] = game_over
         self.currentIndex += 1
 
-    def getTrainInstance(self, modelLearn, modelDecide, batch_size):
-        minLength = min(self.currentIndex, batch_size)
+    def getTrainInstance(self, modelLearn, modelDecide, batchSize):
+        minLength = min(self.currentIndex, batchSize)
         
         elements = np.random.randint(0, min(self.currentIndex, self.maxMemory), size=minLength)
         outputs = np.zeros((self.inputSize, self.outputSize))

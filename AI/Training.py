@@ -42,7 +42,7 @@ class Training:
             action = randmax(q[0])
         
         oldState = self.game.field
-        oldState.append(self.game.currentFigure, self.game.nextFigure, self.game.changeFigure)
+        oldState.append(self.game.currentFigure.typ, self.game.nextFigure.typ, self.game.changeFigure.typ)
 
         if action == 0:
             self.game.left()
@@ -55,13 +55,14 @@ class Training:
         elif action == 4:
             self.game.change()
 
-        reward = self.getReward()
+        reward = self.getReward()   
         state = self.game.field
-        state.append(self.game.currentFigure, self.game.nextFigure, self.game.changeFigure)
+        state.append(self.game.currentFigure.typ, self.game.nextFigure.typ, self.game.changeFigure.typ)
 
         if game.state == GAME_OVER:
             self.exp.remember(oldState, action, reward, state, True)
         else
             self.exp.remember(oldState, action, reward, state, False)
 
-        self.exp.getTrainInstance(self.modelLearn, self.modelDecide, self.batchSize)
+        inputs, outputs = self.exp.getTrainInstance(self.modelLearn, self.modelDecide, self.batchSize)
+        self.loss += modelLearn.train_on_batch(inputs, outputs)

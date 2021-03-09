@@ -94,25 +94,28 @@ def steuerung():
             game.right()
  
 
-update = 0.0
-while not done:
-    lastFrame = time.time()
-    acc = game.level * 0.025
-    if game.state == START and update > 1.025 - acc:
-        game.go_down()
-        update = 0.0
-    if manuell:
-        steuerung()
-    elif training:
-        training.train()
-    else:
-        test()
+def spielen():
+    update = 0.0
+    while not done:
+        lastFrame = time.time()
+        acc = game.level * 0.025
+        if game.state == START and update > 1.025 - acc:
+            game.go_down()
+            update = 0.0
+        if manuell:
+            steuerung()
+        elif training:
+            training.train()
+        else:
+            test()
 
-    if graphics:
-        updateScreen()
-    duration = time.time() - lastFrame
-    lastFrame = time.time()
-    update += duration
+        if graphics:
+            updateScreen()
+        duration = time.time() - lastFrame
+        lastFrame = time.time()
+        update += duration
+spielen()
 
-if graphics:
-    field.gameOver()
+if not manuell:
+    done = False
+    spielen()
