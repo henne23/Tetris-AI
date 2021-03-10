@@ -1,33 +1,45 @@
 import pygame
 import time
+import numpy as np
 
 from constants.Colors import primary_colors, brick_colors
 from constants.GameStates import GAME_OVER, START
 
 class Field:
-    def __init__(self):
-        pygame.init()
-        self.screen = pygame.display.set_mode((580, 670))
-        pygame.display.set_caption("Tetris-AI")
-        self.clock = pygame.time.Clock()
-        self.zoom = 30
-        self.xPosGame = 130
-        self.xNextFigure = 30
-        self.xChangeFigure = 490
-        self.fps = 30
+    def __init__(self, height, width, manuell):
+        if manuell:
+            pygame.init()
+            self.screen = pygame.display.set_mode((580, 670))
+            pygame.display.set_caption("Tetris-AI")
+            self.clock = pygame.time.Clock()
+            self.zoom = 30
+            self.xPosGame = 130
+            self.xNextFigure = 30
+            self.xChangeFigure = 490
+            self.fps = 30
+        self.values = np.zeros((height, width), dtype=int)
 
     def gameOver(self):
-        pygame.quit()
+        done = False
+        while not done:
+            for event in pygame.event.get():
+                if event.type == pygame.KEYDOWN:
+                    if event.key == pygame.K_ESCAPE:
+                        pygame.quit()
+                        done = True
+                    if event.key == pygame.K_KP_ENTER:
+                        return False
+
 
     def update(self, game):
         self.screen.fill(color=primary_colors["WHITE"])
         for i in range(game.height):
             for j in range(game.width):
-                if game.field[i][j] == 0:
+                if self.values[i][j] == 0:
                     color = primary_colors["GRAY"]
                     just_border = 1
                 else:
-                    color = brick_colors[game.field[i][j]]
+                    color = brick_colors[self.values[i][j]]
                     just_border = 0
                 pygame.draw.rect(
                     self.screen,
