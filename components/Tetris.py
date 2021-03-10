@@ -1,5 +1,6 @@
 from components.Figure import Figure
 from GUI.Field import Field
+from AI.actions import actions
 from constants.GameStates import START, GAME_OVER
 import numpy as np
 import random
@@ -15,16 +16,15 @@ class Tetris:
         self.manuell = manuell
         self.train = train
         if not manuell:
-            from AI.Model import createModel, loadModel
             from AI.Experience import Experience
             from AI.Training import Training
-            self.modelLearn = createModel(height, width, loadModel = False)
-            self.modelDecide = loadModel(compil=False)
-            self.training = Training(game, modelLearn, modelDecide, batchSize)
+            self.modelLearn = self.createModel(height, width, loadModel = False)
+            self.modelDecide = self.loadModel(compil=False)
+            self.training = Training(self, self.modelLearn, self.modelDecide, batchSize)
         self.init()
 
     def init(self):
-        self.field = Field(self.height, self.width, self.manuell)
+        self.field = Field(self.height, self.width, self.graphics)
         self.done = False
         self.level = 1
         self.punkte = [40, 100, 300, 1200]
@@ -99,6 +99,7 @@ class Tetris:
         next_figure = Figure(3, 0, typ, self.width)
         if self.intersects(next_figure):
             self.state = GAME_OVER
+            self.done = True
             return
         self.Figure = next_figure
         if self.figureCounter == self.figureAnz-1:
@@ -255,3 +256,48 @@ class Tetris:
                             newGame = True
             if newGame:
                 self.init()
+    
+    def save_model(self, model):
+        # serialize model to JSON
+        model_json = model.to_json()
+        with open("model_Tetris.json", "w") as json_file:
+            json_file.write(model_json)
+        # serialize weights to HDF5
+        model.save_weights("model_Tetris.h5")
+
+    def loadModel(self, compil=True):
+        from keras.models import model_from_json
+        try:   
+            json_file = open('model_Tetris.json', 'r')
+            loaded_model_json = json_file.read()
+            json_file.close()
+            model = model_from_json(loaded_model_json)
+            if compil:
+                model.compile(optimizer="adam", loss="mse")
+        except:
+            print("No model found")
+            model = None
+        try:
+            model.load_weights("model_Tetris.h5")
+        except:
+            print("No weights found")
+        return model
+
+    def createModel(self, height, width, hidden_size=100, loadModel=False, compil = True):
+        from keras.models import Sequential
+        from keras.layers import Dense
+        inputs = ["currentFigure", "nextFigure", "changeFigure"]
+        model = None
+        if loadModel:
+            model = self.loadModel(compil)
+        if model == None:
+            model = Sequential()
+            #Input-Layer -> Alle vorhandenen, unabhängigen Informationen
+            model.add(Dense(hidden_size, input_shape=(height*width + len(inputs),), activation="relu"))
+            #Hidden-Layer
+            model.add(Dense(hidden_size, activation="relu"))
+            #Output-Layer -> Beinhaltet die Anzahl der möglichen Aktionen als Anzahl von Neuronen -> Default-Activation: linear
+            model.add(Dense(len(actions)))
+            model.compile(optimizer = "adam", loss="mse")
+            self.save_model(model)
+        return model

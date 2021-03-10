@@ -2,7 +2,7 @@ import numpy as np
 
 class Experience:
     def __init__(self, inputSize, outputSize, maxMemory = 10000, discount = .9):
-        self.max_memory = max_memory
+        self.maxMemory = maxMemory
         self.stateMemory = np.zeros((self.maxMemory, inputSize))
         self.actionMemory = np.zeros((self.maxMemory), dtype=int)
         self.rewardMemory = np.zeros((self.maxMemory))

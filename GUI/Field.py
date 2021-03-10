@@ -6,8 +6,8 @@ from constants.Colors import primary_colors, brick_colors
 from constants.GameStates import GAME_OVER, START
 
 class Field:
-    def __init__(self, height, width, manuell):
-        if manuell:
+    def __init__(self, height, width, graphics):
+        if graphics:
             pygame.init()
             self.screen = pygame.display.set_mode((580, 670))
             pygame.display.set_caption("Tetris-AI")
@@ -59,7 +59,7 @@ class Field:
         text_gameover = gameover_font.render("Game Over!", True, primary_colors["BLACK"])
         text_2 = gameover_font.render("Press ESC or Enter.", True, primary_colors["BLACK"])
 
-        if game.state == GAME_OVER:
+        if game.state == GAME_OVER and game.manuell:
             self.screen.blit(text_gameover, [30, 250])
             self.screen.blit(text_2, [30, 350])
 

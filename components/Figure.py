@@ -46,8 +46,8 @@ class Figure:
         # Die Bedingungen sollen verhindern, dass die Figur bei Rotation das Spielfeld verlässt
         
         # Hier vielleicht nochmal prüfen, ob man anhand der Rotation zweite und vierte Bedingung
-        if self.typ == 0 and self.x == self.width-2:
-            self.x -= 2
+        if self.typ == 0 and self.x > self.width-4:
+            self.x -= (self.x % (self.width-4))
         elif self.typ < 3 and self.x < 0:
             self.x += 1
         elif not self.typ == 4 and self.x == self.width-2 and self.rotation % 2 == 1:

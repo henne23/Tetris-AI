@@ -16,8 +16,8 @@ Basic game engine by TheMorpheus407
 
 done = False
 graphics = True
-manuell = True
-training = False
+manuell = False
+training = True
 batchSize = 10
 
 height = 20
