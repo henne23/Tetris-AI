@@ -37,8 +37,6 @@ class Training:
             return np.random.choice(max_values)
 
     def getReward(self):
-        if self.game.killedLines > 0:
-            return self.game.killedLines
         for i in range(self.game.height, 0, -1):
             for j in range(self.game.width):
                 if self.game.field.values[i][j] == 0 and self.game.field.values[i-1][j] > 0:

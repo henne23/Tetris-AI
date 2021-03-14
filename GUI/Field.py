@@ -55,6 +55,19 @@ class Field:
                     [self.xPosGame + j * self.zoom, 30 + i * self.zoom, self.zoom, self.zoom],
                     just_border,
                 )
+        dropLine, dropCol = game.wouldDown()
+        borderThickness = 4
+        color = game.Figure.color
+        img = game.Figure.image()
+        for i in range(4):
+            for j in range(4):
+                if img[i][j]:
+                    pygame.draw.rect(
+                        self.screen,
+                        color,
+                        [self.xPosGame + (j+dropLine) * self.zoom, 30 + (i+dropCol) * self.zoom, self.zoom, self.zoom],
+                        borderThickness,
+                    )
                 
         pygame.draw.rect(self.screen, primary_colors["GRAY"], [self.xNextFigure, 60, int(self.zoom/2)*4, int(self.zoom/2)*4], 1)
         pygame.draw.rect(self.screen, primary_colors["GRAY"], [self.xChangeFigure, 60, int(self.zoom/2)*4, int(self.zoom/2)*4], 1)
