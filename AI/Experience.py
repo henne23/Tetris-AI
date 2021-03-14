@@ -1,5 +1,10 @@
 import numpy as np
 
+'''
+Author: Hendrik Pieres
+
+'''
+
 class Experience:
     def __init__(self, inputSize, outputSize, maxMemory = 10000, discount = .9):
         self.maxMemory = maxMemory

@@ -7,6 +7,12 @@ import random
 import time
 import pygame
 
+'''
+Author: Hendrik Pieres
+
+Basic game engine by TheMorpheus407
+
+'''
 
 class Tetris:
     def __init__(self, height, width, graphics, manuell, train, batchSize):
@@ -26,6 +32,10 @@ class Tetris:
     def init(self):
         self.field = Field(self.height, self.width, self.graphics)
         self.done = False
+        self.early = False
+        self.pressing_down = False
+        self.pressing_left = False
+        self.pressing_right = False
         self.level = 1
         self.punkte = [40, 100, 300, 1200]
         self.killedLines = 0
@@ -38,64 +48,55 @@ class Tetris:
         self.changeFigure = None
         self.nextFigure = self.figureSet[self.figureCounter+1]
         self.new_figure()
-        self.spielen()
+        self.start()
 
     def steuerung(self):
-        '''
-        keys = pygame.key.get_pressed()
-        print(np.sum(keys))
-
-        if keys[pygame.K_LEFT]:
-            game.left()
-        if keys[pygame.K_RIGHT]:
-            game.right()
-        '''
-        pressing_down = False
-        pressing_left = False
-        pressing_right = False
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 self.done = True
+                self.early = True
             if self.state == GAME_OVER:
                 self.done = True
+
+            # Hier muss noch ein weiterer Counter eingebaut werden
+
             if event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_UP:
                 #if event.key == pygame.K_w:
                     self.rotate()
                 if event.key == pygame.K_DOWN:
                 #if event.key == pygame.K_s:
-                    pressing_down = True
+                    self.down()
                 if event.key == pygame.K_LEFT:
                 #if event.key == pygame.K_a:
-                    pressing_left = True
+                    self.pressing_left = True
                 if event.key == pygame.K_RIGHT:
                 #if event.key == pygame.K_d:
-                    pressing_right = True
+                    self.pressing_right = True
                 if event.key == pygame.K_q:
                     self.change()
                 if event.key == pygame.K_ESCAPE:
                     self.done = True
+                    self.early = True
 
             if event.type == pygame.KEYUP:
-                if event.key == pygame.K_DOWN:
-                #if event.key == pygame.K_s:
-                    pressing_down = False
                 if event.key == pygame.K_LEFT:
                 #if event.key == pygame.K_a:
-                    pressing_left = False
+                    self.pressing_left = False
                 if event.key == pygame.K_RIGHT:
                 #if event.key == pygame.K_d:
-                    pressing_right = False
+                    self.pressing_right = False
 
-            if pressing_down:
-                self.down()
-            if pressing_left:
-                self.left()
-            if pressing_right:
-                self.right()
-
+        if self.pressing_down:
+            self.down()
+        if self.pressing_left:
+            self.left()
+        if self.pressing_right:
+            self.right()
+    
     def new_figure(self):
         typ = self.figureSet[self.figureCounter]
+        #typ = 0
         next_figure = Figure(3, 0, typ, self.width)
         if self.intersects(next_figure):
             self.state = GAME_OVER
@@ -152,9 +153,11 @@ class Tetris:
             
     def left(self):
         self.side(-1)
+        time.sleep(0.15)
 
     def right(self):
         self.side(1)
+        time.sleep(0.15)
 
     def down(self):
         while not self.intersects():
@@ -170,6 +173,9 @@ class Tetris:
 
     def intersects(self, fig=None):
         fig = self.Figure if (fig is None) else fig
+        img = fig.image()
+        x = fig.x
+        y = fig.y
         intersection = False
         for i in range(4):
             for j in range(4):
@@ -204,6 +210,7 @@ class Tetris:
             for j in range(self.width):
                 if self.field.values[i][j] == 0:
                     zeros += 1
+                    break
             if zeros == 0:
                 lines += 1
                 for i2 in range(i, 1, -1):
@@ -214,12 +221,12 @@ class Tetris:
             self.killedLines += lines
             self.level = int(self.killedLines/10)+1 
 
-    def spielen(self):
+    def start(self):
         update = 0.0
         while not self.done:
             lastFrame = time.time()
-            acc = self.level * 0.025
-            if self.state == START and update > 1.025 - acc:
+            acc = 0.9**self.level
+            if self.state == START and update > acc:
                 self.go_down()
                 update = 0.0
             if self.manuell:
@@ -234,9 +241,11 @@ class Tetris:
             duration = time.time() - lastFrame
             lastFrame = time.time()
             update += duration
-        self.restart()
+        self.restart(self.early)
 
-    def restart(self):
+    def restart(self, early):
+        if early:
+            return
         if not self.manuell:
             if not self.train:
                 print("Level: %d\tScore: %d" % (self.level, self.score))

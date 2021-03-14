@@ -5,6 +5,13 @@ import numpy as np
 from constants.Colors import primary_colors, brick_colors
 from constants.GameStates import GAME_OVER, START
 
+'''
+Author: Hendrik Pieres
+
+Basic game engine by TheMorpheus407
+
+'''
+
 class Field:
     def __init__(self, height, width, graphics):
         if graphics:

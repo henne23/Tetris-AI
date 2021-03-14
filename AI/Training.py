@@ -4,6 +4,10 @@ from AI.Experience import Experience
 from AI.actions import actions
 from constants.GameStates import START, GAME_OVER
 
+'''
+Author: Hendrik Pieres
+
+'''
 
 class Training:
     def __init__(self, game, modelLearn, modelDecide, batchSize):
@@ -12,6 +16,7 @@ class Training:
         self.modelDecide = modelDecide
         self.epsilon = .1
         self.loss = .0
+        self.targetLine = game.height
         self.batchSize = batchSize
         self.exp = Experience(self.modelDecide.input_shape[-1], self.modelDecide.output_shape[-1])
 
@@ -34,6 +39,10 @@ class Training:
     def getReward(self):
         if self.game.killedLines > 0:
             return self.game.killedLines
+        for i in range(self.game.height, 0, -1):
+            for j in range(self.game.width):
+                if self.game.field.values[i][j] == 0 and self.game.field.values[i-1][j] > 0:
+                    self.targetLine -= 1
         
 
     def train(self):

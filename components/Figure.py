@@ -1,6 +1,13 @@
 import random
+import numpy as np
 from constants.Colors import brick_colors
 
+'''
+Author: Hendrik Pieres
+
+Basic game engine by TheMorpheus407
+
+'''
 
 class Figure:
     x = 0
@@ -35,6 +42,7 @@ class Figure:
         self.x = x_coord
         self.y = y_coord
         self.typ = typ
+        self.binar = np.zeros(16)
         self.width = width  
         self.color = brick_colors[self.typ + 1]
         self.rotation = 0
