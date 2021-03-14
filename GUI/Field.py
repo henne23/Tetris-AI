@@ -24,6 +24,7 @@ class Field:
             self.xNextFigure = 30
             self.xChangeFigure = 490
             self.fps = 30
+            self.colors = np.zeros((height, width), dtype=int)
         self.values = np.zeros((height, width), dtype=int)
 
     def gameOver(self):
@@ -46,7 +47,7 @@ class Field:
                     color = primary_colors["GRAY"]
                     just_border = 1
                 else:
-                    color = brick_colors[self.values[i][j]]
+                    color = brick_colors[self.colors[i][j]]
                     just_border = 0
                 pygame.draw.rect(
                     self.screen,
@@ -85,10 +86,10 @@ class Field:
 
     def drawFigure(self, fig, x, y, zoom, gameX = 0, gameY = 0):
         if fig is not None:
+            img = fig.image()
             for i in range(4):
                 for j in range(4):
-                    p = i * 4 + j
-                    if p in fig.image():
+                    if img[i][j]:
                         pygame.draw.rect(
                             self.screen,
                             fig.color,

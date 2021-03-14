@@ -123,10 +123,10 @@ class Tetris:
     def side(self, dx):
         old_x = self.Figure.x
         edge = False
+        fig = self.Figure.image()
         for i in range(4):
             for j in range(4):
-                p = i * 4 + j
-                if p in self.Figure.image():
+                if fig[i][j]:
                     if (
                         j + self.Figure.x + dx > self.width - 1  # beyond right border
                         or j + self.Figure.x + dx < 0  # beyond left border
@@ -174,13 +174,10 @@ class Tetris:
     def intersects(self, fig=None):
         fig = self.Figure if (fig is None) else fig
         img = fig.image()
-        x = fig.x
-        y = fig.y
         intersection = False
         for i in range(4):
             for j in range(4):
-                p = i * 4 + j
-                if p in fig.image():
+                if img[i][j]:
                     if (
                         i + fig.y > self.height - 1  # bottom intersection
                         # or i + fig.y < 0  #
@@ -190,36 +187,31 @@ class Tetris:
         return intersection
 
     def freeze(self):
+        fig = self.Figure.image()
         for i in range(4):
             for j in range(4):
-                p = i * 4 + j
-                if p in self.Figure.image():
-                    self.field.values[i + self.Figure.y][j + self.Figure.x] = (
-                        self.Figure.typ + 1
-                    )
+                if fig[i][j]:
+                    self.field.values[i + self.Figure.y][j + self.Figure.x] = 1
+                    self.field.colors[i + self.Figure.y][j + self.Figure.x] = (self.Figure.typ + 1)
         self.break_lines()
         self.new_figure()
 
     def break_lines(self):
 
         # Quelle für Punktevergabe: https://www.onlinespiele-sammlung.de/tetris/about-tetris.php#gewinn
-
-        lines = 0
-        for i in range(1, self.height):
-            zeros = 0
-            for j in range(self.width):
-                if self.field.values[i][j] == 0:
-                    zeros += 1
-                    break
-            if zeros == 0:
-                lines += 1
-                for i2 in range(i, 1, -1):
-                    for j in range(self.width):
-                        self.field.values[i2][j] = self.field.values[i2 - 1][j]
-        if lines > 0:
-            self.score += self.punkte[lines-1] * self.level
-            self.killedLines += lines
-            self.level = int(self.killedLines/10)+1 
+        lines = np.sum(self.field.values, axis=1)
+        linesBool = [lines[x] > self.width -1 for x in range(len(lines))]
+        killedLines = np.sum(linesBool)
+        if killedLines > 0:
+            for index, val in enumerate(lines):
+                if val > 9:
+                    for i in range(index, 1, -1):
+                        for j in range(self.width):
+                            self.field.values[i][j] = self.field.values[i - 1][j]
+                            self.field.colors[i][j] = self.field.colors[i - 1][j]
+            self.score += self.punkte[killedLines - 1] * self.level
+            self.killedLines += killedLines
+            self.level = int(self.killedLines/10) + 1
 
     def start(self):
         update = 0.0

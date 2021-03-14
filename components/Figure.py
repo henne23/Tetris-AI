@@ -42,13 +42,18 @@ class Figure:
         self.x = x_coord
         self.y = y_coord
         self.typ = typ
-        self.binar = np.zeros(16)
         self.width = width  
         self.color = brick_colors[self.typ + 1]
         self.rotation = 0
+        self.binar = self.image()
 
     def image(self):
-        return self.Figures[self.typ][self.rotation]
+        rects = self.Figures[self.typ][self.rotation]
+        binar = np.zeros(16, dtype=int)
+        for p in rects:
+            binar[p] = 1
+        return binar.reshape((4,4))
+        #return self.Figures[self.typ][self.rotation]
 
     def rotate(self):
         # Die Bedingungen sollen verhindern, dass die Figur bei Rotation das Spielfeld verlässt
