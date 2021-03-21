@@ -16,11 +16,13 @@ class Training:
         self.modelDecide = modelDecide
         self.epsilon = .1
         self.loss = .0
-        self.targetLine = game.height
+        self.updateModel = 50
+        self.targetLine = game.height - 1
         self.batchSize = batchSize
         self.exp = Experience(self.modelDecide.input_shape[-1], self.modelDecide.output_shape[-1])
 
     def randmax(self, values):
+        # kann ggf. gelöscht werden, damit auch keine Code-Fragmente kopiert werden müssen
         max_values = []
         current_max = values[0]
         index = 0
@@ -36,12 +38,34 @@ class Training:
         else:
             return np.random.choice(max_values)
 
-    def getReward(self):
-        for i in range(self.game.height, 0, -1):
-            for j in range(self.game.width):
-                if self.game.field.values[i][j] == 0 and self.game.field.values[i-1][j] > 0:
-                    self.targetLine -= 1
-        
+    def getReward(self, oldKilledLines):
+        val = np.copy(self.game.field.values)
+        newTargetLine = self.targetLine
+        dropX, dropY = self.game.wouldDown()
+        fig = self.game.Figure.image()
+        if self.game.state == GAME_OVER:
+            return -1
+        if self.game.killedLines > oldKilledLines:
+            return self.game.killedLines - oldKilledLines
+        # i = Zeile, j = Spalte
+        for i in range(4):
+                for j in range(4):
+                    # Die Prüfung kann hier stattfinden, da bereits in der Spielumgebung geprüft wird, das Werte nicht out of bounds laufen
+                    if i + dropY < 20 and j + dropX < 10:
+                        val[i+dropY][j+dropX] += fig[i][j]
+        for i in range(self.targetLine, 0, -1):
+            if np.sum(val[i]) == 0:
+                break
+            diff = self.game.field.values[i] - self.game.field.values[i-1]
+            if min(diff) < 0:
+                self.targetLine -= 1
+            diff = val[i] - val[i-1]
+            if min(diff) < 0:
+                newTargetLine -= 1
+        if newTargetLine < self.targetLine:
+            return -0.5
+        reward = np.sum(val[self.targetLine])/self.game.width
+        return reward
 
     def train(self):
         if self.game.changeFigure == None:
@@ -60,6 +84,7 @@ class Training:
         oldState = self.game.field.values.reshape((1,-1))
         figures = np.asarray([self.game.Figure.typ, self.game.nextFigure.typ, cTyp]).reshape((1,-1))
         oldState = np.append(oldState, figures, axis=1)
+        oldKilledLines = self.game.killedLines
 
         if action == 0:
             self.game.left()
@@ -72,7 +97,7 @@ class Training:
         elif action == 4:
             self.game.change()
 
-        reward = self.getReward()   
+        reward = self.getReward(oldKilledLines)   
         if self.game.changeFigure == None:
             cTyp = 10
         else:
@@ -88,3 +113,7 @@ class Training:
 
         inputs, outputs = self.exp.getTrainInstance(self.modelLearn, self.modelDecide, self.batchSize)
         self.loss += self.modelLearn.train_on_batch(inputs, outputs)
+
+        if self.game.moves % self.updateModel == 0:
+            self.game.save_model(self.modelLearn)
+            self.modelDecide.load_weights("model_Tetris.h5")

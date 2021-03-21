@@ -15,22 +15,29 @@ Basic game engine by TheMorpheus407
 '''
 
 class Tetris:
-    def __init__(self, height, width, graphics, manuell, train, batchSize):
+    def __init__(self, height, width, graphics, manual, train, batchSize, darkmode):
         self.height = height
         self.width = width
         self.graphics = graphics
-        self.manuell = manuell
+        self.manual = manual
         self.train = train
-        if not manuell:
+        self.darkmode = darkmode
+        if not manual:
             from AI.Experience import Experience
             from AI.Training import Training
             self.modelLearn = self.createModel(height, width, loadModel = False)
             self.modelDecide = self.loadModel(compil=False)
             self.training = Training(self, self.modelLearn, self.modelDecide, batchSize)
-        self.init()
+            try:
+                path = "C:/Users/hpieres/Documents/Git/Tetris-AI/EpochResults/"
+                self.epochs = max([int(re.sub(r'\D', "", x)) for x in os.listdir(path) if len(re.sub(r'\D',"",x))>0]) + 1
+            except:
+                self.epochs = 1
 
     def init(self):
-        self.field = Field(self.height, self.width, self.graphics)
+        self.startTime = time.time()
+        self.moves = 0
+        self.field = Field(self.height, self.width, self.graphics, self.darkmode)
         self.done, self.early, self.pressing_down, self.pressing_left, self.pressing_right, self.switch = False, False, False, False, False, False
         self.level = 1
         self.punkte = [40, 100, 300, 1200]
@@ -47,7 +54,7 @@ class Tetris:
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 self.done = True
-                self.early = True
+                return
             if self.state == GAME_OVER:
                 self.done = True
 
@@ -64,9 +71,12 @@ class Tetris:
                     self.change()
                 if event.key == pygame.K_n:
                     self.init()
+                if event.key == pygame.K_p:
+                    self.stop()
                 if event.key == pygame.K_ESCAPE:
                     self.done = True
                     self.early = True
+                    return
 
             if event.type == pygame.KEYUP:
                 if event.key == pygame.K_LEFT:
@@ -137,14 +147,15 @@ class Tetris:
                 self.changeFigure = figureSwitch
             self.switch = True
                 
-            
     def left(self):
         self.side(-1)
-        time.sleep(0.15)
+        if self.manual:
+            time.sleep(0.15)
 
     def right(self):
         self.side(1)
-        time.sleep(0.15)
+        if self.manual:
+            time.sleep(0.15)
 
     def down(self):
         while not self.intersects():
@@ -213,6 +224,16 @@ class Tetris:
             self.score += self.punkte[killedLines - 1] * self.level
             self.killedLines += killedLines
             self.level = int(self.killedLines/10) + 1
+            if self.train:
+                self.training.targetLine = self.height - 1
+
+    def stop(self):
+        q = False
+        while not q:
+            for event in pygame.event.get():
+                if event.type == pygame.KEYDOWN:
+                    if event.key == pygame.K_p:
+                        q = True
 
     def start(self):
         update = 0.0
@@ -222,10 +243,11 @@ class Tetris:
             if self.state == START and update > acc:
                 self.go_down()
                 update = 0.0
-            if self.manuell:
+            if self.manual:
                 self.steuerung()
             elif self.training is not None:
                 self.training.train()
+                self.moves += 1
             else:
                 self.test()
 
@@ -234,30 +256,11 @@ class Tetris:
             duration = time.time() - lastFrame
             lastFrame = time.time()
             update += duration
-        self.restart(self.early)
-
-    def restart(self, early):
-        if early:
-            return
-        if not self.manuell:
-            if not self.train:
-                print("Level: %d\tScore: %d" % (self.level, self.score))
-            else:
-                self.init()
-        else:
-            q = False
-            newGame = False
-            while not q:
-                for event in pygame.event.get():
-                    if event.type == pygame.KEYDOWN:
-                        if event.key == pygame.K_ESCAPE:
-                            q = True
-                            self.field.gameOver()
-                        if event.key == pygame.K_RETURN:
-                            q = True
-                            newGame = True
-            if newGame:
-                self.init()
+        if self.train:
+            gameTime = time.time() - self.startTime
+            print("Epoch: %d\tLevel: %d\tScore: %d\tMoves: %d\tTime: %.2f" % (self.epochs, self.level, self.score, self.moves, gameTime))
+            self.epochs += 1
+    
     
     def save_model(self, model):
         # serialize model to JSON
