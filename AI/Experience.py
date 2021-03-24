@@ -45,5 +45,6 @@ class Experience:
             if gameOvers[index]:
                 outputs[index, act] = rewards[index]
             else:
-                outputs[index, act] = rewards[index]*0.1 + self.discount * newOutputs[index]
+                test = rewards[index]*0.1 + self.discount * newOutputs[index]
+                outputs[index, act] = test
         return states, outputs

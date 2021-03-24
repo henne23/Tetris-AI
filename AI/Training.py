@@ -16,7 +16,7 @@ class Training:
         self.modelDecide = modelDecide
         self.epsilon = .1
         self.loss = .0
-        self.updateModel = 50
+        self.updateModel = 500
         self.targetLine = game.height - 1
         self.batchSize = batchSize
         self.exp = Experience(self.modelDecide.input_shape[-1], self.modelDecide.output_shape[-1])
@@ -64,7 +64,12 @@ class Training:
                 newTargetLine -= 1
         if newTargetLine < self.targetLine:
             return -0.5
-        reward = np.sum(val[self.targetLine])/self.game.width
+        
+        # Namensgebung überarbeiten -> Schauen, ob direkte Höhenbetrachtung oder Höhenveränderung besser ist
+        factor = .7
+        breite = np.sum(val[self.targetLine])/self.game.width
+        hoehe = np.sum(val, axis=1).argmax()/(self.game.height-1)
+        reward = hoehe * factor + breite * (1-factor)
         return reward
 
     def train(self):
@@ -110,9 +115,10 @@ class Training:
             self.exp.remember(oldState, action, reward, state, True)
         else:
             self.exp.remember(oldState, action, reward, state, False)
-
-        inputs, outputs = self.exp.getTrainInstance(self.modelLearn, self.modelDecide, self.batchSize)
-        self.loss += self.modelLearn.train_on_batch(inputs, outputs)
+        
+        if self.game.moves % self.batchSize == 0:
+            inputs, outputs = self.exp.getTrainInstance(self.modelLearn, self.modelDecide, self.batchSize)
+            self.loss += self.modelLearn.train_on_batch(inputs, outputs)
 
         if self.game.moves % self.updateModel == 0:
             self.game.save_model(self.modelLearn)

@@ -12,7 +12,7 @@ manual = False
 train = True
 darkmode = True
 verbose = True
-batchSize = 10
+batchSize = 50
 
 height = 20
 width = 10

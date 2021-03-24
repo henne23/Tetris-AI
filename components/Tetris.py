@@ -25,7 +25,10 @@ class Tetris:
         if not manual:
             from AI.Experience import Experience
             from AI.Training import Training
-            self.modelLearn = self.createModel(height, width, loadModel = False)
+            if train:
+                self.modelLearn = self.createModel(height, width, loadModel = False)
+            else:
+                self.modelLearn = self.loadModel()
             self.modelDecide = self.loadModel(compil=False)
             self.training = Training(self, self.modelLearn, self.modelDecide, batchSize)
             try:
@@ -256,7 +259,7 @@ class Tetris:
             duration = time.time() - lastFrame
             lastFrame = time.time()
             update += duration
-        if self.train:
+        if not self.manual:
             gameTime = time.time() - self.startTime
             print("Epoch: %d\tLevel: %d\tScore: %d\tMoves: %d\tTime: %.2f" % (self.epochs, self.level, self.score, self.moves, gameTime))
             self.epochs += 1
