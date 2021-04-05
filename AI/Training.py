@@ -16,7 +16,8 @@ class Training:
         self.modelDecide = modelDecide
         self.epsilon = .1
         self.loss = .0
-        self.updateModel = 500
+        self.state = np.zeros(4, dtype=int)
+        self.updateModel = 50
         self.targetLine = game.height - 1
         self.batchSize = batchSize
         self.exp = Experience(self.modelDecide.input_shape[-1], self.modelDecide.output_shape[-1])
@@ -38,7 +39,38 @@ class Training:
         else:
             return np.random.choice(max_values)
 
-    def getReward(self, oldKilledLines):
+    def getReward(self, nextState):
+
+        # Aktuelle Problematik: Es wäre wünschenswert alle vier Kriterien in den Reward des States einfließen zu lassen. Jedoch
+        # ist es schwierig, die Werte sauber zu normieren, damit bspw. ein weiteres Loch nicht weniger gewichtet wird, als eine
+        # zunehmende Höhe.
+        
+        killedLines = nextState[0]
+        holes = nextState[1]/np.sum(self.game.field.values)
+        height = nextState[2]/self.game.height
+        bumpiness = nextState[3]
+        return 1+killedLines**2
+        '''
+        # Check for killed Lines
+        if nextState[0]:
+            return nextState[0]
+        # Check for additional holes
+        if nextState[1] > self.state[1]:
+            return -0.5
+        # Check for new height
+        if nextState[2] > self.state[2]:
+            return -0.3
+        # Check for new bumpiness
+        if nextState[3] > self.state[3]:
+            return -0.1
+        # return a positive feedback, if the next state does not lead to a higher height, new holes or a bigger bumpiness
+        return 0.1
+        '''
+
+    def getRewardOld(self, oldKilledLines):
+    
+        # Nächster Umstrukturierungsansatz: Nicht jede Aktion bewerten, sondern alle möglichen Endstates (wo kann der nächste Block landen)
+        # Frage: Ist das dann noch Q-Learning?
         val = np.copy(self.game.field.values)
         newTargetLine = self.targetLine
         dropX, dropY = self.game.wouldDown()
@@ -72,12 +104,83 @@ class Training:
         reward = hoehe * factor + breite * (1-factor)
         return reward
 
+    def getStateValue(self, field):
+        fieldCopy = np.copy(field)
+        lines = np.sum(fieldCopy, axis=1)
+        killedLines = np.sum([x >= self.game.width for x in lines])
+        if killedLines > 0:
+            for index, val in enumerate(lines):
+                if val > 9:
+                    for i in range(index, 1, -1):
+                        for j in range(self.game.width):
+                            fieldCopy[i][j] = fieldCopy[i - 1][j]
+        height = self.game.height - np.sum(fieldCopy, axis=1).argmax()
+        for i in range(len(fieldCopy)-1):
+            fieldCopy[i+1] = fieldCopy[i+1] - abs(fieldCopy[i])
+        holes = np.sum([fieldCopy[x] < 0 for x in range(len(fieldCopy))])
+        b = (field!=0).argmax(axis=0)
+        b = np.where(b>0,self.game.height-b,0)
+        bumpiness = np.sum(np.abs(b[:-1]-b[1:]))
+        return np.array([killedLines, holes, height, bumpiness])
+
+    def getNextPosSteps(self):
+        states = {}
+        fig = self.game.Figure
+        numRot = len(fig.Figures[fig.typ])
+        for r in range(numRot):
+            length, start = fig.length(fig.typ, r)
+            maxX = self.game.width - length + 1
+            img = fig.image(fig.typ, r)
+            for x in range(start, maxX+start):
+                dropX, dropY = self.game.wouldDown(x=x, img=img)
+                field = np.copy(self.game.field.values)
+                for i in range(4):
+                    for j in range(4):
+                        if i + dropY < 20 and j + dropX < 10:
+                            field[i+dropY][j+dropX] += img[i][j]
+                states[(x, r)] = self.getStateValue(field)
+        return states
+
     def train(self):
+        nextPosSteps = self.getNextPosSteps()
+        nextActions, nextSteps = zip(*nextPosSteps.items())
+        nextSteps = np.asarray(nextSteps)
+        if (np.random.rand() <= self.epsilon or self.game.totalMoves < self.exp.maxMemory/10) and self.game.train:
+            index = np.random.randint(0,len(nextPosSteps)-1)
+        else:
+            q = self.modelDecide.predict(nextSteps)
+            index = np.argmax(q)
+        
+        x, r = nextActions[index]
+        nextState = nextSteps[index]
+        self.game.Figure.x = x
+        self.game.Figure.rotation = r
+        self.game.down()
+
+        if self.game.train:
+            reward = self.getReward(nextState)
+            if self.game.state == GAME_OVER:
+                self.exp.remember(self.state, np.array([x,r]), reward, nextState, True)
+            else:
+                self.exp.remember(self.state, np.array([x,r]), reward, nextState, False)
+            
+            self.state = nextState
+
+            # Jetzt wird nach 2.000 Zügen jedes Mal mit 512 Erfahrungswerten gelernt -> so gewollt?
+            if self.game.totalMoves > self.exp.maxMemory/10:
+                inputs, outputs = self.exp.getTrainInstance(self.modelLearn, self.modelDecide, self.batchSize)
+                self.loss += self.modelLearn.train_on_batch(inputs, outputs)
+
+            if self.game.totalMoves % self.updateModel == 0:
+                self.game.save_model(self.modelLearn)
+                self.modelDecide.load_weights("model_Tetris.h5")
+
+    def trainOld(self):
         if self.game.changeFigure == None:
             cTyp = 10
         else:
             cTyp = self.game.changeFigure.typ
-        if np.random.rand() <= self.epsilon:
+        if np.random.rand() <= self.epsilon or self.game.moves < self.exp.maxMemory/10:
             action = np.random.randint(0, len(actions))
         else:
             inputLayer = self.game.field.values.reshape((1,-1))
@@ -116,10 +219,10 @@ class Training:
         else:
             self.exp.remember(oldState, action, reward, state, False)
         
-        if self.game.moves % self.batchSize == 0:
+        if self.game.totalMoves % self.batchSize == 0 and self.game.totalMoves > self.exp.maxMemory/10:
             inputs, outputs = self.exp.getTrainInstance(self.modelLearn, self.modelDecide, self.batchSize)
             self.loss += self.modelLearn.train_on_batch(inputs, outputs)
 
-        if self.game.moves % self.updateModel == 0:
+        if self.game.totalMoves % self.updateModel == 0:
             self.game.save_model(self.modelLearn)
             self.modelDecide.load_weights("model_Tetris.h5")

@@ -30,7 +30,9 @@ class Tetris:
             else:
                 self.modelLearn = self.loadModel()
             self.modelDecide = self.loadModel(compil=False)
+            self.totalMoves = 0
             self.training = Training(self, self.modelLearn, self.modelDecide, batchSize)
+            print("Place %d pieces first" % (self.training.exp.maxMemory/10))
             try:
                 path = "C:/Users/hpieres/Documents/Git/Tetris-AI/EpochResults/"
                 self.epochs = max([int(re.sub(r'\D', "", x)) for x in os.listdir(path) if len(re.sub(r'\D',"",x))>0]) + 1
@@ -39,8 +41,8 @@ class Tetris:
 
     def init(self):
         self.startTime = time.time()
-        self.moves = 0
-        self.field = Field(self.height, self.width, self.graphics, self.darkmode)
+        self.pieces = 0
+        self.field = Field(self.height, self.width, self.graphics, self.darkmode, self.manual)
         self.done, self.early, self.pressing_down, self.pressing_left, self.pressing_right, self.switch = False, False, False, False, False, False
         self.level = 1
         self.punkte = [40, 100, 300, 1200]
@@ -48,6 +50,7 @@ class Tetris:
         self.figureAnz = 7
         self.state = START
         self.figureSet = random.sample(range(self.figureAnz),self.figureAnz)
+        #self.figureSet = [0,1,2,3,4,5,6]
         self.changeFigure = None
         self.nextFigure = self.figureSet[self.figureCounter+1]
         self.new_figure()
@@ -96,7 +99,7 @@ class Tetris:
     
     def new_figure(self):
         typ = self.figureSet[self.figureCounter]
-        #typ = 0
+        #typ = 5
         next_figure = Figure(3, 0, typ, self.width)
         if self.intersects(next_figure):
             self.state = GAME_OVER
@@ -166,9 +169,13 @@ class Tetris:
         self.Figure.y -= 1
         self.freeze()
 
-    def wouldDown(self):
-        fig = self.Figure
-        img = fig.image()
+    def wouldDown(self, fig=None, x=None, img=None):
+        if fig is None:
+            fig = self.Figure
+        if x is None:
+            x = self.Figure.x
+        if img is None:
+            img = fig.image()
         for i in range(fig.y,self.height):
             for j in range(4):
                 for k in range(4):
@@ -177,7 +184,7 @@ class Tetris:
                             j + i > self.height - 1 or
                             self.field.values[j + i][k + fig.x] > 0
                         ):
-                            return fig.x, i - 1
+                            return x, i - 1
 
     def rotate(self):
         old_rotation = self.Figure.rotation
@@ -215,8 +222,7 @@ class Tetris:
         # Quelle für Punktevergabe: https://www.onlinespiele-sammlung.de/tetris/about-tetris.php#gewinn
 
         lines = np.sum(self.field.values, axis=1)
-        linesBool = [lines[x] > self.width -1 for x in range(len(lines))]
-        killedLines = np.sum(linesBool)
+        killedLines = np.sum([x >= self.width for x in lines])
         if killedLines > 0:
             for index, val in enumerate(lines):
                 if val > 9:
@@ -241,28 +247,30 @@ class Tetris:
     def start(self):
         update = 0.0
         while not self.done:
-            lastFrame = time.time()
-            acc = 0.9**self.level
-            if self.state == START and update > acc:
-                self.go_down()
-                update = 0.0
+            if self.training is None:
+                lastFrame = time.time()
+                acc = 0.9**self.level
+                if self.state == START and update > acc:
+                    self.go_down()
+                    update = 0.0
             if self.manual:
                 self.steuerung()
             elif self.training is not None:
                 self.training.train()
-                self.moves += 1
-            else:
-                self.test()
+                self.pieces += 1
+                self.totalMoves += 1
 
             if self.graphics:
                 self.field.update(self)
-            duration = time.time() - lastFrame
-            lastFrame = time.time()
-            update += duration
+            if self.training is None:
+                duration = time.time() - lastFrame
+                lastFrame = time.time()
+                update += duration
         if not self.manual:
-            gameTime = time.time() - self.startTime
-            print("Epoch: %d\tLevel: %d\tScore: %d\tMoves: %d\tTime: %.2f" % (self.epochs, self.level, self.score, self.moves, gameTime))
-            self.epochs += 1
+            if self.totalMoves > self.training.exp.maxMemory / 10:
+                gameTime = time.time() - self.startTime
+                print("Epoch: %d\tLevel: %d\tScore: %d\tPieces: %d\tTime: %.2f" % (self.epochs, self.level, self.score, self.pieces, gameTime))
+                self.epochs += 1
     
     
     def save_model(self, model):
@@ -294,18 +302,20 @@ class Tetris:
     def createModel(self, height, width, hidden_size=100, loadModel=False, compil = True):
         from keras.models import Sequential
         from keras.layers import Dense
-        inputs = ["currentFigure", "nextFigure", "changeFigure"]
         model = None
         if loadModel:
             model = self.loadModel(compil)
         if model == None:
             model = Sequential()
             #Input-Layer -> Alle vorhandenen, unabhängigen Informationen
-            model.add(Dense(hidden_size, input_shape=(height*width + len(inputs),), activation="relu"))
+            #model.add(Dense(hidden_size, input_shape=(height*width + len(inputs),), activation="relu"))
+            model.add(Dense(hidden_size, input_shape=(4,), activation="relu"))
             #Hidden-Layer
             model.add(Dense(hidden_size, activation="relu"))
             #Output-Layer -> Beinhaltet die Anzahl der möglichen Aktionen als Anzahl von Neuronen -> Default-Activation: linear
-            model.add(Dense(len(actions)))
+            #model.add(Dense(len(actions)))
+            # Ansatz: Größe der Output-Schicht richtet sich nach maximal möglichen States (Rotation*xPos, Bsp. L)
+            model.add(Dense(1))
             model.compile(optimizer = "adam", loss="mse")
             self.save_model(model)
         return model

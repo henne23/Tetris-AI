@@ -13,7 +13,7 @@ Basic game engine by TheMorpheus407
 '''
 
 class Field:
-    def __init__(self, height, width, graphics, darkmode):
+    def __init__(self, height, width, graphics, darkmode, manual):
         if graphics:
             pygame.init()
             self.screen = pygame.display.set_mode((580, 670))
@@ -23,7 +23,10 @@ class Field:
             self.xPosGame = 130
             self.xNextFigure = 30
             self.xChangeFigure = 490
-            self.fps = 30
+            if manual:
+                self.fps = 30
+            else:
+                self.fps = 1
             if not darkmode:
                 self.fieldColors = ["WHITE", "GRAY", "BLACK"]
             else:

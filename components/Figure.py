@@ -5,13 +5,9 @@ from constants.Colors import brick_colors
 '''
 Author: Hendrik Pieres
 
-Basic game engine by TheMorpheus407
-
 '''
 
 class Figure:
-    x = 0
-    y = 0
 
     """
     Figure-matrix:
@@ -23,17 +19,11 @@ class Figure:
     """
 
     Figures = [
-    # Auskommentierte Positionen waren die Ursprünglichen, wurden korrigiert, damit bei Rotation der Rand nicht überschritten wird
-    
-        [[1, 5, 9, 13], [4, 5, 6, 7]],                                  # I
-        #[[1, 2, 5, 9], [0, 4, 5, 6], [1, 5, 9, 8], [4, 5, 6, 10]],     # J
+        [[0, 4, 8, 12], [4, 5, 6, 7]],                                  # I
         [[0, 4, 5, 6], [1, 2, 5, 9], [4, 5, 6, 10], [2, 6, 9, 10]],     # J
-        #[[1, 2, 6, 10], [5, 6, 7, 9], [2, 6, 10, 11], [3, 5, 6, 7]],   # L
         [[4, 5, 6, 8],[1, 2, 6, 10], [2, 4, 5, 6], [1, 5, 9, 10]],      # L
-        [[1, 2, 5, 6]],                                                 # O
-        #[[6, 7, 9, 10], [1, 5, 6, 10]],                                # S
+        [[0, 1, 4, 5]],                                                 # O
         [[5, 6, 8, 9], [1, 5, 6, 10]],                                  # S
-        #[[1, 4, 5, 6], [1, 4, 5, 9], [4, 5, 6, 9], [1, 5, 6, 9]],      # T
         [[1, 4, 5, 6], [1, 5, 6, 9], [4, 5, 6, 9], [2, 5, 6, 10]],      # T
         [[4, 5, 9, 10], [2, 6, 5, 9]],                                  # Z
     ]
@@ -47,24 +37,34 @@ class Figure:
         self.rotation = 0
         self.binar = self.image()
 
-    def image(self):
-        rects = self.Figures[self.typ][self.rotation]
+    def image(self, typ=None, rotation=None):
+        if typ is None:
+            typ = self.typ
+        if rotation is None:
+            rotation = self.rotation
+        rects = self.Figures[typ][rotation]
         binar = np.zeros(16, dtype=int)
         for p in rects:
             binar[p] = 1
         return binar.reshape((4,4))
-        #return self.Figures[self.typ][self.rotation]
+
+    def length(self, typ, rotation):
+        fig = np.sum(self.image(typ, rotation), axis=0)
+        # Da die Tetrominos nicht immer am linken Rand starten, wird in der folgenden Zeile die Spalte ermittelt, in der 
+        # der Tetromino beginnt, um die For-Schleife zu verschieben
+        start = (fig!=0).argmax(axis=0)
+        return np.sum([x > 0 for x in fig]), -start
 
     def rotate(self):
         # Die Bedingungen sollen verhindern, dass die Figur bei Rotation das Spielfeld verlässt
-        
-        # Hier vielleicht nochmal prüfen, ob man anhand der Rotation zweite und vierte Bedingung
         if self.typ == 0 and self.x > self.width-4:
             self.x -= (self.x % (self.width-4))
         elif self.typ < 3 and self.x < 0:
             self.x += 1
-        elif not self.typ == 4 and self.x == self.width-2 and self.rotation % 2 == 1:
-            self.x -= 1   
+        elif not (self.typ == 4 or self.typ == 0) and self.x == self.width-2 and self.rotation % 2 == 1:
+            self.x -= 1 
+        elif self.typ == 0 and self.x < 2:
+            self.x += (self.x % (self.width-8))  
         elif self.typ > 3 and self.x < 0 and self.rotation % 2 == 1:
             self.x += 1
         self.rotation = (self.rotation + 1) % len(self.Figures[self.typ])

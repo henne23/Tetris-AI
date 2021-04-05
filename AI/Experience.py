@@ -6,16 +6,17 @@ Author: Hendrik Pieres
 '''
 
 class Experience:
-    def __init__(self, inputSize, outputSize, maxMemory = 10000, discount = .9):
+    def __init__(self, inputSize, outputSize, maxMemory = 20000, discount = .9):
         self.maxMemory = maxMemory
         self.stateMemory = np.zeros((self.maxMemory, inputSize))
-        self.actionMemory = np.zeros((self.maxMemory), dtype=int)
+        self.actionMemory = np.zeros((self.maxMemory, 2))
         self.rewardMemory = np.zeros((self.maxMemory))
         self.nextstateMemory = np.zeros((self.maxMemory, inputSize))
         self.gameOverMemory = np.zeros(self.maxMemory, dtype=bool)
         self.discount = discount
         self.inputSize = inputSize
         self.outputSize = outputSize
+        self.alpha = .02
         self.currentIndex = 0
 
     def remember(self, state, action, reward, nextState, game_over):
@@ -41,10 +42,11 @@ class Experience:
         outputs = modelLearn.predict_on_batch(states)
         newOutputs = np.max(modelDecide.predict_on_batch(nextStates), axis = 1)
 
-        for index, act in enumerate(actions):
+        for index, _ in enumerate(actions):
             if gameOvers[index]:
-                outputs[index, act] = rewards[index]
+                outputs[index] = rewards[index]
             else:
-                test = rewards[index]*0.1 + self.discount * newOutputs[index]
-                outputs[index, act] = test
+                # Einführung des inkrementellen Lernens aufgrund nicht deterministischer nächster Tetromino
+                #test = test*(1-self.alpha) + rewards[index]*0.1 + self.discount * newOutputs[index]*self.alpha
+                outputs[index] = rewards[index] + self.discount * newOutputs[index]
         return states, outputs
