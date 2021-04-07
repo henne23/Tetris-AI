@@ -8,7 +8,7 @@ Author: Hendrik Pieres
 class Experience:
     def __init__(self, inputSize, outputSize, maxMemory = 20000, discount = .9):
         self.maxMemory = maxMemory
-        self.stateMemory = np.zeros((self.maxMemory, inputSize))
+        self.stateMemory = np.zeros((self.maxMemory, inputSize), dtype=int)
         self.actionMemory = np.zeros((self.maxMemory, 2))
         self.rewardMemory = np.zeros((self.maxMemory))
         self.nextstateMemory = np.zeros((self.maxMemory, inputSize))
@@ -40,7 +40,7 @@ class Experience:
         nextStates = self.nextstateMemory[elements]
 
         outputs = modelLearn.predict_on_batch(states)
-        newOutputs = np.max(modelDecide.predict_on_batch(nextStates), axis = 1)
+        newOutputs = np.max(modelLearn.predict_on_batch(nextStates), axis = 1)
 
         for index, _ in enumerate(actions):
             if gameOvers[index]:

@@ -17,40 +17,23 @@ class Training:
         self.epsilon = .1
         self.loss = .0
         self.state = np.zeros(4, dtype=int)
-        self.updateModel = 50
+        self.updateModel = 1
         self.targetLine = game.height - 1
         self.batchSize = batchSize
         self.exp = Experience(self.modelDecide.input_shape[-1], self.modelDecide.output_shape[-1])
-
-    def randmax(self, values):
-        # kann ggf. gelöscht werden, damit auch keine Code-Fragmente kopiert werden müssen
-        max_values = []
-        current_max = values[0]
-        index = 0
-        for v in values:
-            if v > current_max:
-                max_values = [index]
-                current_max = v
-            elif v == current_max:
-                max_values.append(index)
-            index += 1
-        if len(max_values) == 0:
-            return np.random.randint(0,len(values)-1)
-        else:
-            return np.random.choice(max_values)
 
     def getReward(self, nextState):
 
         # Aktuelle Problematik: Es wäre wünschenswert alle vier Kriterien in den Reward des States einfließen zu lassen. Jedoch
         # ist es schwierig, die Werte sauber zu normieren, damit bspw. ein weiteres Loch nicht weniger gewichtet wird, als eine
         # zunehmende Höhe.
-        
+        '''
         killedLines = nextState[0]
         holes = nextState[1]/np.sum(self.game.field.values)
         height = nextState[2]/self.game.height
         bumpiness = nextState[3]
         return 1+killedLines**2
-        '''
+        
         # Check for killed Lines
         if nextState[0]:
             return nextState[0]
@@ -65,7 +48,17 @@ class Training:
             return -0.1
         # return a positive feedback, if the next state does not lead to a higher height, new holes or a bigger bumpiness
         return 0.1
+        
+        killedLines = nextState[0]
+        holes = 0.5*nextState[1]/np.sum(self.game.field.values)
+        height = 0.3*nextState[2]/self.game.height
+        bumpiness = 0.2*nextState[3]/171 # 171 is the maximum bumpiness
+        if killedLines:
+            return killedLines
+        else:
+            return -(holes+height+bumpiness)
         '''
+        return 1 + nextState[0]**2 * self.game.width
 
     def getRewardOld(self, oldKilledLines):
     
@@ -148,7 +141,7 @@ class Training:
         if (np.random.rand() <= self.epsilon or self.game.totalMoves < self.exp.maxMemory/10) and self.game.train:
             index = np.random.randint(0,len(nextPosSteps)-1)
         else:
-            q = self.modelDecide.predict(nextSteps)
+            q = self.modelLearn.predict(nextSteps)
             index = np.argmax(q)
         
         x, r = nextActions[index]
@@ -156,6 +149,9 @@ class Training:
         self.game.Figure.x = x
         self.game.Figure.rotation = r
         self.game.down()
+        if np.sum(self.game.field.values[2]) > 0:
+            pass
+            #print("Break")
 
         if self.game.train:
             reward = self.getReward(nextState)
@@ -166,14 +162,14 @@ class Training:
             
             self.state = nextState
 
-            # Jetzt wird nach 2.000 Zügen jedes Mal mit 512 Erfahrungswerten gelernt -> so gewollt?
+            # Jetzt wird nach 2.000 Zügen jedes Mal mit batch_size Erfahrungswerten gelernt -> so gewollt?
             if self.game.totalMoves > self.exp.maxMemory/10:
                 inputs, outputs = self.exp.getTrainInstance(self.modelLearn, self.modelDecide, self.batchSize)
                 self.loss += self.modelLearn.train_on_batch(inputs, outputs)
 
-            if self.game.totalMoves % self.updateModel == 0:
-                self.game.save_model(self.modelLearn)
-                self.modelDecide.load_weights("model_Tetris.h5")
+                if self.game.totalMoves % self.updateModel == 0:
+                    self.game.save_model(self.modelLearn)
+                    self.modelDecide.load_weights("model_Tetris.h5")
 
     def trainOld(self):
         if self.game.changeFigure == None:

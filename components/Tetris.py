@@ -45,7 +45,7 @@ class Tetris:
         self.field = Field(self.height, self.width, self.graphics, self.darkmode, self.manual)
         self.done, self.early, self.pressing_down, self.pressing_left, self.pressing_right, self.switch = False, False, False, False, False, False
         self.level = 1
-        self.punkte = [40, 100, 300, 1200]
+        self.points = [40, 100, 300, 1200]
         self.killedLines, self.score, self.figureCounter = 0, 0, 0
         self.figureAnz = 7
         self.state = START
@@ -166,7 +166,10 @@ class Tetris:
     def down(self):
         while not self.intersects():
             self.Figure.y += 1
-        self.Figure.y -= 1
+        if self.Figure.y >= self.Figure.height() - 1:
+            self.Figure.y -= 1
+        else:
+            self.done = True
         self.freeze()
 
     def wouldDown(self, fig=None, x=None, img=None):
@@ -230,7 +233,7 @@ class Tetris:
                         for j in range(self.width):
                             self.field.values[i][j] = self.field.values[i - 1][j]
                             self.field.colors[i][j] = self.field.colors[i - 1][j]
-            self.score += self.punkte[killedLines - 1] * self.level
+            self.score += self.points[killedLines - 1] * self.level
             self.killedLines += killedLines
             self.level = int(self.killedLines/10) + 1
             if self.train:
@@ -247,13 +250,12 @@ class Tetris:
     def start(self):
         update = 0.0
         while not self.done:
-            if self.training is None:
+            if self.manual:
                 lastFrame = time.time()
                 acc = 0.9**self.level
                 if self.state == START and update > acc:
                     self.go_down()
                     update = 0.0
-            if self.manual:
                 self.steuerung()
             elif self.training is not None:
                 self.training.train()
@@ -262,7 +264,7 @@ class Tetris:
 
             if self.graphics:
                 self.field.update(self)
-            if self.training is None:
+            if self.manual:
                 duration = time.time() - lastFrame
                 lastFrame = time.time()
                 update += duration
@@ -271,6 +273,7 @@ class Tetris:
                 gameTime = time.time() - self.startTime
                 print("Epoch: %d\tLevel: %d\tScore: %d\tPieces: %d\tTime: %.2f" % (self.epochs, self.level, self.score, self.pieces, gameTime))
                 self.epochs += 1
+                self.training.loss = 0.0
     
     
     def save_model(self, model):
@@ -299,7 +302,7 @@ class Tetris:
             print("No weights found")
         return model
 
-    def createModel(self, height, width, hidden_size=100, loadModel=False, compil = True):
+    def createModel(self, height, width, hidden_size=64, loadModel=False, compil = True):
         from keras.models import Sequential
         from keras.layers import Dense
         model = None
