@@ -55,11 +55,6 @@ class Figure:
         start = (fig!=0).argmax(axis=0)
         return np.sum([x > 0 for x in fig]), -start
 
-    def height(self):
-        fig = np.sum(self.image(self.typ, self.rotation), axis=1)
-        test = np.sum([x > 0 for x in fig])
-        return test
-
     def rotate(self):
         # Die Bedingungen sollen verhindern, dass die Figur bei Rotation das Spielfeld verlässt
         if self.typ == 0 and self.x > self.width-4:

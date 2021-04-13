@@ -16,7 +16,6 @@ class Experience:
         self.discount = discount
         self.inputSize = inputSize
         self.outputSize = outputSize
-        self.alpha = .02
         self.currentIndex = 0
 
     def remember(self, state, action, reward, nextState, game_over):
@@ -46,7 +45,5 @@ class Experience:
             if gameOvers[index]:
                 outputs[index] = rewards[index]
             else:
-                # Einführung des inkrementellen Lernens aufgrund nicht deterministischer nächster Tetromino
-                #test = test*(1-self.alpha) + rewards[index]*0.1 + self.discount * newOutputs[index]*self.alpha
                 outputs[index] = rewards[index] + self.discount * newOutputs[index]
         return states, outputs

@@ -32,7 +32,8 @@ class Tetris:
             self.modelDecide = self.loadModel(compil=False)
             self.totalMoves = 0
             self.training = Training(self, self.modelLearn, self.modelDecide, batchSize)
-            print("Place %d pieces first" % (self.training.exp.maxMemory/10))
+            if train:
+                print("Place %d pieces first" % (self.training.exp.maxMemory/10))
             try:
                 path = "C:/Users/hpieres/Documents/Git/Tetris-AI/EpochResults/"
                 self.epochs = max([int(re.sub(r'\D', "", x)) for x in os.listdir(path) if len(re.sub(r'\D',"",x))>0]) + 1
@@ -49,8 +50,9 @@ class Tetris:
         self.killedLines, self.score, self.figureCounter = 0, 0, 0
         self.figureAnz = 7
         self.state = START
-        self.figureSet = random.sample(range(self.figureAnz),self.figureAnz)
-        #self.figureSet = [0,1,2,3,4,5,6]
+        #self.figureSet = random.sample(range(self.figureAnz),self.figureAnz)
+        self.figureSet = [0,1,2,3,4,5,6]
+        #self.figureSet = [3,4,6,1,2,5,0]
         self.changeFigure = None
         self.nextFigure = self.figureSet[self.figureCounter+1]
         self.new_figure()
@@ -60,6 +62,7 @@ class Tetris:
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 self.done = True
+                self.early = True
                 return
             if self.state == GAME_OVER:
                 self.done = True
@@ -166,10 +169,7 @@ class Tetris:
     def down(self):
         while not self.intersects():
             self.Figure.y += 1
-        if self.Figure.y >= self.Figure.height() - 1:
-            self.Figure.y -= 1
-        else:
-            self.done = True
+        self.Figure.y -= 1
         self.freeze()
 
     def wouldDown(self, fig=None, x=None, img=None):
@@ -185,7 +185,7 @@ class Tetris:
                     if img[j][k]:
                         if(
                             j + i > self.height - 1 or
-                            self.field.values[j + i][k + fig.x] > 0
+                            self.field.values[j + i][k + x] > 0
                         ):
                             return x, i - 1
 
@@ -220,24 +220,31 @@ class Tetris:
         self.break_lines()
         self.new_figure()
 
-    def break_lines(self):
+    def break_lines(self, field=None):
 
         # Quelle für Punktevergabe: https://www.onlinespiele-sammlung.de/tetris/about-tetris.php#gewinn
-
-        lines = np.sum(self.field.values, axis=1)
+        
+        scoreUpdate = False
+        if field is None:
+            field = self.field.values
+            fieldCol = self.field.colors
+            scoreUpdate = True
+        lines = np.sum(field, axis=1)
         killedLines = np.sum([x >= self.width for x in lines])
         if killedLines > 0:
             for index, val in enumerate(lines):
                 if val > 9:
                     for i in range(index, 1, -1):
                         for j in range(self.width):
-                            self.field.values[i][j] = self.field.values[i - 1][j]
-                            self.field.colors[i][j] = self.field.colors[i - 1][j]
-            self.score += self.points[killedLines - 1] * self.level
-            self.killedLines += killedLines
-            self.level = int(self.killedLines/10) + 1
-            if self.train:
-                self.training.targetLine = self.height - 1
+                            field[i][j] = field[i - 1][j]
+                            if scoreUpdate:
+                                fieldCol[i][j] = fieldCol[i - 1][j]
+            if scoreUpdate:
+                self.score += self.points[killedLines - 1] * self.level
+                self.killedLines += killedLines
+                self.level = int(self.killedLines/10) + 1
+        if not scoreUpdate:
+            return field, killedLines
 
     def stop(self):
         q = False
@@ -276,11 +283,12 @@ class Tetris:
                 self.training.loss = 0.0
     
     
-    def save_model(self, model):
+    def save_model(self, model, first=False):
         # serialize model to JSON
         model_json = model.to_json()
-        with open("model_Tetris.json", "w") as json_file:
-            json_file.write(model_json)
+        if first:
+            with open("model_Tetris.json", "w") as json_file:
+                json_file.write(model_json)
         # serialize weights to HDF5
         model.save_weights("model_Tetris.h5")
 
@@ -302,7 +310,7 @@ class Tetris:
             print("No weights found")
         return model
 
-    def createModel(self, height, width, hidden_size=64, loadModel=False, compil = True):
+    def createModel(self, height, width, hidden_size=32, loadModel=False, compil = True):
         from keras.models import Sequential
         from keras.layers import Dense
         model = None
@@ -320,5 +328,5 @@ class Tetris:
             # Ansatz: Größe der Output-Schicht richtet sich nach maximal möglichen States (Rotation*xPos, Bsp. L)
             model.add(Dense(1))
             model.compile(optimizer = "adam", loss="mse")
-            self.save_model(model)
+            self.save_model(model, first=True)
         return model
