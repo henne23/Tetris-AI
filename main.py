@@ -7,12 +7,12 @@ Author: Hendrik Pieres
 
 '''
 done = False
-graphics = True
+graphics = False
 manual = False
-train = False
+train = True
 darkmode = True
 verbose = True
-batchSize = 512
+batchSize = 64
 
 height = 20
 width = 10

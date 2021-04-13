@@ -18,7 +18,7 @@ class Training:
         self.epsilon = .05
         self.loss = .0
         self.state = np.zeros(4, dtype=int)
-        self.updateModel = 1
+        self.updateModel = 50
         self.batchSize = batchSize
         self.exp = Experience(self.modelDecide.input_shape[-1], self.modelDecide.output_shape[-1])
 
@@ -133,10 +133,11 @@ class Training:
             
             self.state = nextState
 
-            if self.game.totalMoves > self.exp.maxMemory/10:
+            if self.game.totalMoves > self.exp.maxMemory/10 and self.game.totalMoves % self.batchSize == 0:
                 inputs, outputs = self.exp.getTrainInstance(self.modelLearn, self.modelDecide, self.batchSize)
                 self.loss += self.modelLearn.train_on_batch(inputs, outputs)
-
+                '''
                 if self.game.totalMoves % self.updateModel == 0:
                     self.game.save_model(self.modelLearn)
                     self.modelDecide.load_weights("model_Tetris.h5")
+                '''
