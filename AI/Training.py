@@ -2,8 +2,7 @@ import numpy as np
 import pygame
 
 from AI.Experience import Experience
-from AI.actions import actions
-from constants.GameStates import START, GAME_OVER
+from constants.GameStates import GAME_OVER, START
 
 '''
 Author: Hendrik Pieres
@@ -64,7 +63,8 @@ class Training:
         if self.game.done:
             return -1
         return 1 + (killedLines**2) * self.game.width
-
+        
+        
     def getStateValue(self, field):
         fieldCopy, killedLines = self.game.break_lines(np.copy(field))
         #height = self.game.height - np.sum(fieldCopy, axis=1).argmax()
@@ -85,19 +85,23 @@ class Training:
             length, start = fig.length(fig.typ, r)
             maxX = self.game.width - length + 1
             img = fig.image(fig.typ, r)
+            height, emptyCols = fig.height(img)
             for x in range(start, maxX+start):
-                dropX, dropY = self.game.wouldDown(x=x, img=img)
+                dropX, dropY = self.game.wouldDown(x=x, img=img, height=height, emptyCols=emptyCols)
                 # otherwise no valid move
                 if dropY >= 0:
                     field = np.copy(self.game.field.values)
+                    # Diese For-Schleife konnte noch nicht aufgelöst werden
                     for i in range(4):
                         for j in range(4):
                             if i + dropY < 20 and j + dropX < 10:
                                 field[i+dropY][j+dropX] += img[i][j]
+                    #field[dropY:dropY+4, dropX:dropX+4] += imgBottom
                     states[(x, r)] = self.getStateValue(field)
         return states
 
     def train(self):
+        # Enable to exit the game during test session
         if self.game.graphics:
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
@@ -109,11 +113,16 @@ class Training:
                         self.game.done = True
                         self.game.early = True
                         return
+                    
         nextPosSteps = self.getNextPosSteps()
         nextActions, nextSteps = zip(*nextPosSteps.items())
         nextSteps = np.asarray(nextSteps)
-        if (np.random.rand() <= self.epsilon or self.game.totalMoves < self.exp.maxMemory/10) and self.game.train:
-            index = np.random.randint(0,len(nextPosSteps)-1)
+        if (np.random.rand() <= self.epsilon or (self.game.totalMoves < self.exp.maxMemory/10 and not self.game.loadModel)) and self.game.train:
+            try:
+                # Sometimes an error occured that could not be explained by debugging
+                index = np.random.randint(0,len(nextPosSteps)-1)
+            except:
+                print("Something went wrong")
         else:
             q = self.modelLearn.predict(nextSteps)
             index = np.argmax(q)
@@ -133,11 +142,11 @@ class Training:
             
             self.state = nextState
 
-            if self.game.totalMoves > self.exp.maxMemory/10 and self.game.totalMoves % self.batchSize == 0:
+            if self.game.totalMoves > self.exp.maxMemory/10:
                 inputs, outputs = self.exp.getTrainInstance(self.modelLearn, self.modelDecide, self.batchSize)
                 self.loss += self.modelLearn.train_on_batch(inputs, outputs)
-                '''
+                
                 if self.game.totalMoves % self.updateModel == 0:
                     self.game.save_model(self.modelLearn)
-                    self.modelDecide.load_weights("model_Tetris.h5")
-                '''
+                    #self.modelDecide.load_weights("model_Tetris.h5")
+                

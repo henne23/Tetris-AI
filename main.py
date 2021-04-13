@@ -1,6 +1,5 @@
 from components.Tetris import Tetris
 import pygame
-import time
 
 '''
 Author: Hendrik Pieres
@@ -12,7 +11,7 @@ manual = False
 train = True
 darkmode = True
 verbose = True
-batchSize = 64
+batchSize = 512
 
 height = 20
 width = 10

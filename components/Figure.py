@@ -1,4 +1,3 @@
-import random
 import numpy as np
 from constants.Colors import brick_colors
 
@@ -54,6 +53,13 @@ class Figure:
         # der Tetromino beginnt, um die For-Schleife zu verschieben
         start = (fig!=0).argmax(axis=0)
         return np.sum([x > 0 for x in fig]), -start
+    
+    def height(self, img):
+        fig = np.sum(img, axis=0)
+        height = max(fig)
+        col = fig.argmax()
+        emptyCols = 4 - height - (img!=0).argmax(axis=0)[col]
+        return height, emptyCols
 
     def rotate(self):
         # Die Bedingungen sollen verhindern, dass die Figur bei Rotation das Spielfeld verlässt

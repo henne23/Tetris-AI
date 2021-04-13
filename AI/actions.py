@@ -1,1 +1,0 @@
-actions = {"right": 1, "left": 2, "down": 3, "rotate": 4, "change": 5}

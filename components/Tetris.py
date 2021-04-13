@@ -1,8 +1,10 @@
 from components.Figure import Figure
 from GUI.Field import Field
-from AI.actions import actions
 from constants.GameStates import START, GAME_OVER
 import numpy as np
+import os 
+import shutil
+import re
 import random
 import time
 import pygame
@@ -23,16 +25,21 @@ class Tetris:
         self.train = train
         self.darkmode = darkmode
         if not manual:
-            from AI.Experience import Experience
             from AI.Training import Training
             if train:
-                self.modelLearn = self.createModel(height, width, loadModel = False)
+                self.loadModel = True
+                self.modelLearn = self.createModel(height, width)
             else:
-                self.modelLearn = self.loadModel()
-            self.modelDecide = self.loadModel(compil=False)
+                self.modelLearn = self.loadModelFunc()
+            self.modelDecide = self.loadModelFunc(compil=False)
             self.totalMoves = 0
+            try:
+                path = os.getcwd()
+                self.highscore = int(re.sub('model_Tetris.h5', "", os.listdir(path + "\\Save")[0]))
+            except:
+                self.highscore = 0
             self.training = Training(self, self.modelLearn, self.modelDecide, batchSize)
-            if train:
+            if train and not self.loadModel:
                 print("Place %d pieces first" % (self.training.exp.maxMemory/10))
             try:
                 path = "C:/Users/hpieres/Documents/Git/Tetris-AI/EpochResults/"
@@ -50,8 +57,8 @@ class Tetris:
         self.killedLines, self.score, self.figureCounter = 0, 0, 0
         self.figureAnz = 7
         self.state = START
-        #self.figureSet = random.sample(range(self.figureAnz),self.figureAnz)
-        self.figureSet = [0,1,2,3,4,5,6]
+        self.figureSet = random.sample(range(self.figureAnz),self.figureAnz)
+        #self.figureSet = [0,1,2,3,4,5,6]
         #self.figureSet = [3,4,6,1,2,5,0]
         self.changeFigure = None
         self.nextFigure = self.figureSet[self.figureCounter+1]
@@ -172,13 +179,22 @@ class Tetris:
         self.Figure.y -= 1
         self.freeze()
 
-    def wouldDown(self, fig=None, x=None, img=None):
+    def wouldDown(self, fig=None, x=None, img=None, height = None, emptyCols = None):
         if fig is None:
             fig = self.Figure
         if x is None:
             x = self.Figure.x
         if img is None:
             img = fig.image()
+            height, emptyCols = fig.height(img)
+        # Problem: Es folgt eine leere Liste, wenn x = -1
+        field = np.copy(self.field.values)[:, x:x+4]
+        b = (field!=0).argmax(axis=0)
+        b = [x if x > 0 else 20 for x in b]
+        row = min(b) - height - emptyCols
+        #return x, row
+        
+        
         for i in range(fig.y,self.height):
             for j in range(4):
                 for k in range(4):
@@ -188,7 +204,7 @@ class Tetris:
                             self.field.values[j + i][k + x] > 0
                         ):
                             return x, i - 1
-
+        
     def rotate(self):
         old_rotation = self.Figure.rotation
         self.Figure.rotate()
@@ -276,13 +292,17 @@ class Tetris:
                 lastFrame = time.time()
                 update += duration
         if not self.manual:
-            if self.totalMoves > self.training.exp.maxMemory / 10:
+            if self.loadModel or self.totalMoves > self.training.exp.maxMemory / 10:
                 gameTime = time.time() - self.startTime
-                print("Epoch: %d\tLevel: %d\tScore: %d\tPieces: %d\tTime: %.2f" % (self.epochs, self.level, self.score, self.pieces, gameTime))
+                print("Epoch: %5d\t\tLevel: %2d\tScore: %7d\tPieces: %5d\tTime: %.2f" % (self.epochs, self.level, self.score, self.pieces, gameTime))
                 self.epochs += 1
                 self.training.loss = 0.0
-    
-    
+                if self.score > self.highscore:
+                    self.save_model(self.modelLearn)
+                    os.remove("Save/%dmodel_Tetris.h5" % self.highscore)
+                    self.highscore = self.score
+                    shutil.copy("model_Tetris.h5", "Save/%dmodel_Tetris.h5" % self.highscore)
+                    
     def save_model(self, model, first=False):
         # serialize model to JSON
         model_json = model.to_json()
@@ -292,7 +312,7 @@ class Tetris:
         # serialize weights to HDF5
         model.save_weights("model_Tetris.h5")
 
-    def loadModel(self, compil=True):
+    def loadModelFunc(self, compil=True):
         from keras.models import model_from_json
         try:   
             json_file = open('model_Tetris.json', 'r')
@@ -310,12 +330,12 @@ class Tetris:
             print("No weights found")
         return model
 
-    def createModel(self, height, width, hidden_size=32, loadModel=False, compil = True):
+    def createModel(self, height, width, hidden_size=32, compil = True):
         from keras.models import Sequential
         from keras.layers import Dense
         model = None
-        if loadModel:
-            model = self.loadModel(compil)
+        if self.loadModel:
+            model = self.loadModelFunc(compil)
         if model == None:
             model = Sequential()
             #Input-Layer -> Alle vorhandenen, unabhängigen Informationen
