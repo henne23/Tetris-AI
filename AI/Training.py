@@ -1,5 +1,6 @@
 import numpy as np
 import pygame
+import time
 
 from AI.Experience import Experience
 from constants.GameStates import GAME_OVER, START
@@ -87,7 +88,7 @@ class Training:
             img = fig.image(fig.typ, r)
             height, emptyCols = fig.height(img)
             for x in range(start, maxX+start):
-                dropX, dropY = self.game.wouldDown(x=x, img=img, height=height, emptyCols=emptyCols)
+                dropX, dropY = self.game.wouldDown(x=x, img=img, height=height, emptyCols=emptyCols, start=start)
                 # otherwise no valid move
                 if dropY >= 0:
                     field = np.copy(self.game.field.values)
@@ -112,8 +113,7 @@ class Training:
                     if event.key == pygame.K_ESCAPE:
                         self.game.done = True
                         self.game.early = True
-                        return
-                    
+                        return          
         nextPosSteps = self.getNextPosSteps()
         nextActions, nextSteps = zip(*nextPosSteps.items())
         nextSteps = np.asarray(nextSteps)
@@ -142,9 +142,11 @@ class Training:
             
             self.state = nextState
 
-            if self.game.totalMoves > self.exp.maxMemory/10:
+            if self.game.loadModel or self.game.totalMoves > self.exp.maxMemory/10:
+                start = time.time()
                 inputs, outputs = self.exp.getTrainInstance(self.modelLearn, self.modelDecide, self.batchSize)
                 self.loss += self.modelLearn.train_on_batch(inputs, outputs)
+                self.game.trainTime += (time.time() - start)
                 
                 if self.game.totalMoves % self.updateModel == 0:
                     self.game.save_model(self.modelLearn)

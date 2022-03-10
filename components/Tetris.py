@@ -26,8 +26,8 @@ class Tetris:
         self.darkmode = darkmode
         if not manual:
             from AI.Training import Training
+            self.loadModel = True
             if train:
-                self.loadModel = True
                 self.modelLearn = self.createModel(height, width)
             else:
                 self.modelLearn = self.loadModelFunc()
@@ -49,16 +49,16 @@ class Tetris:
 
     def init(self):
         self.startTime = time.time()
-        self.pieces = 0
+        self.trainTime, self.evalTime = 0.0, 0.0
         self.field = Field(self.height, self.width, self.graphics, self.darkmode, self.manual)
         self.done, self.early, self.pressing_down, self.pressing_left, self.pressing_right, self.switch = False, False, False, False, False, False
         self.level = 1
         self.points = [40, 100, 300, 1200]
-        self.killedLines, self.score, self.figureCounter = 0, 0, 0
+        self.killedLines, self.score, self.figureCounter, self.pieces, self.currentHeight = 0, 0, 0, 0, 0
         self.figureAnz = 7
         self.state = START
-        self.figureSet = random.sample(range(self.figureAnz),self.figureAnz)
-        #self.figureSet = [0,1,2,3,4,5,6]
+        #self.figureSet = random.sample(range(self.figureAnz),self.figureAnz)
+        self.figureSet = [0,1,2,3,4,5,6]
         #self.figureSet = [3,4,6,1,2,5,0]
         self.changeFigure = None
         self.nextFigure = self.figureSet[self.figureCounter+1]
@@ -178,31 +178,31 @@ class Tetris:
             self.Figure.y += 1
         self.Figure.y -= 1
         self.freeze()
+        b = (self.field.values!=0).argmax(axis=0)
+        self.currentHeight = min(np.where(b>0,b,self.height))
 
-    def wouldDown(self, fig=None, x=None, img=None, height = None, emptyCols = None):
+    def wouldDown(self, fig=None, x=None, img=None, height = None, emptyCols = None, start = None):
         if fig is None:
             fig = self.Figure
         if x is None:
             x = self.Figure.x
         if img is None:
             img = fig.image()
-            height, emptyCols = fig.height(img)
-        # Problem: Es folgt eine leere Liste, wenn x = -1
-        field = np.copy(self.field.values)[:, x:x+4]
+            #height, emptyCols = fig.height(img)
+        # Because not every Tetromino is placed on the left side, x can take -1 as value. Then only the first THREE columns need to be
+        # checked
+        '''
+        field = np.copy(self.field.values)[:, x:x+4] if start == 0 else np.copy(self.field.values)[:,x+1:x+4]
         b = (field!=0).argmax(axis=0)
         b = [x if x > 0 else 20 for x in b]
-        row = min(b) - height - emptyCols
+        row = min(b) - 4 + emptyCols
         #return x, row
-        
-        
-        for i in range(fig.y,self.height):
+        '''
+        for i in range(max(self.currentHeight-4,0), self.height):
             for j in range(4):
                 for k in range(4):
                     if img[j][k]:
-                        if(
-                            j + i > self.height - 1 or
-                            self.field.values[j + i][k + x] > 0
-                        ):
+                        if j + i > self.height - 1 or self.field.values[j + i][k + x] > 0:
                             return x, i - 1
         
     def rotate(self):
@@ -292,9 +292,9 @@ class Tetris:
                 lastFrame = time.time()
                 update += duration
         if not self.manual:
-            if self.loadModel or self.totalMoves > self.training.exp.maxMemory / 10:
+            if (self.loadModel and self.train) or (self.totalMoves > self.training.exp.maxMemory / 10):
                 gameTime = time.time() - self.startTime
-                print("Epoch: %5d\t\tLevel: %2d\tScore: %7d\tPieces: %5d\tTime: %.2f" % (self.epochs, self.level, self.score, self.pieces, gameTime))
+                print("Epoch: %5d\t\tLevel: %2d\tScore: %7d\tPieces: %5d\tTime: %.2f\tTT: %.2f\tET: %.2f" % (self.epochs, self.level, self.score, self.pieces, gameTime, self.trainTime, self.evalTime))
                 self.epochs += 1
                 self.training.loss = 0.0
                 if self.score > self.highscore:
@@ -330,7 +330,7 @@ class Tetris:
             print("No weights found")
         return model
 
-    def createModel(self, height, width, hidden_size=32, compil = True):
+    def createModel(self, height, width, hidden_size=64, compil = True):
         from keras.models import Sequential
         from keras.layers import Dense
         model = None

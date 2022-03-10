@@ -26,7 +26,11 @@ class Figure:
         [[1, 4, 5, 6], [1, 5, 6, 9], [4, 5, 6, 9], [2, 5, 6, 10]],      # T
         [[4, 5, 9, 10], [2, 6, 5, 9]],                                  # Z
     ]
-
+    '''
+    Figures = [
+        [[1,1,1,1], ]
+    ]
+    '''
     def __init__(self, x_coord, y_coord, typ, width):
         self.x = x_coord
         self.y = y_coord
@@ -48,17 +52,18 @@ class Figure:
         return binar.reshape((4,4))
 
     def length(self, typ, rotation):
+        # This function evaluates the length of the Tetromino and where to start in the field, because not every Tetromino is placed
+        # on the left side at the start.
         fig = np.sum(self.image(typ, rotation), axis=0)
-        # Da die Tetrominos nicht immer am linken Rand starten, wird in der folgenden Zeile die Spalte ermittelt, in der 
-        # der Tetromino beginnt, um die For-Schleife zu verschieben
         start = (fig!=0).argmax(axis=0)
         return np.sum([x > 0 for x in fig]), -start
     
     def height(self, img):
-        fig = np.sum(img, axis=0)
-        height = max(fig)
-        col = fig.argmax()
-        emptyCols = 4 - height - (img!=0).argmax(axis=0)[col]
+        # This function evaluates the height of the Tetromino to calculate where it would fall down. The empty columns are needed to
+        # place the Tetromino on the right place in the field.
+        fig = np.sum(img, axis=1)
+        height = np.sum([x > 0 for x in fig])
+        emptyCols = (np.flip(fig)!=0).argmax(axis=0)
         return height, emptyCols
 
     def rotate(self):

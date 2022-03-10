@@ -6,14 +6,17 @@ Author: Hendrik Pieres
 
 '''
 done = False
-graphics = False
+graphics = True
 manual = False
-train = True
+train = False
 darkmode = True
 verbose = True
-batchSize = 512
+batchSize = 256
 
-height = 20
+if train:
+    height = 10
+else:    
+    height = 20
 width = 10
 game = Tetris(height, width, graphics, manual, train, batchSize, darkmode)
 
