@@ -1,3 +1,4 @@
+from tabnanny import verbose
 import numpy as np
 import pygame
 import time
@@ -20,7 +21,8 @@ class Training:
         self.state = np.zeros(4, dtype=int)
         self.updateModel = 50
         self.batchSize = batchSize
-        self.exp = Experience(self.modelDecide.input_shape[-1], self.modelDecide.output_shape[-1])
+        maxMemory = batchSize * int(20000/batchSize)
+        self.exp = Experience(self.modelDecide.input_shape[-1], self.modelDecide.output_shape[-1], maxMemory=maxMemory)
 
     def getReward(self, nextState):
 
@@ -54,17 +56,26 @@ class Training:
             return killedLines
         else:
             return -(holes+height+bumpiness)
-        
+        '''
         if self.game.done:
             return -1
         else:
             return 1 + nextState[0]**2 * self.game.width
         '''
         killedLines = nextState[0]
+        height = nextState[2]
+        holes = nextState[1]
+        bumpiness = nextState[3]
+        return -0.51*height + 0.76*killedLines - 0.36*holes - 0.18*bumpiness
+        
         if self.game.done:
             return -1
-        return 1 + (killedLines**2) * self.game.width
-        
+        elif killedLines:
+            return killedLines
+        else:
+            # Formula from paper "Playing Tetris with Deep Reinforcement Learning"
+            return -0.51*height + 0.76*killedLines - 0.36*holes - 0.18*bumpiness
+        '''
         
     def getStateValue(self, field):
         fieldCopy, killedLines = self.game.break_lines(np.copy(field))
@@ -78,9 +89,10 @@ class Training:
         bumpiness = np.sum(np.abs(b[:-1]-b[1:]))
         return np.array([killedLines, holes, height, bumpiness])
 
-    def getNextPosSteps(self):
+    def getNextPosSteps(self, fig=None):
         states = {}
-        fig = self.game.Figure
+        if fig is None:
+            fig = self.game.Figure
         numRot = len(fig.Figures[fig.typ])
         for r in range(numRot):
             length, start = fig.length(fig.typ, r)
@@ -95,7 +107,7 @@ class Training:
                     # Diese For-Schleife konnte noch nicht aufgelöst werden
                     for i in range(4):
                         for j in range(4):
-                            if i + dropY < 20 and j + dropX < 10:
+                            if i + dropY < self.game.height and j + dropX < self.game.width:
                                 field[i+dropY][j+dropX] += img[i][j]
                     #field[dropY:dropY+4, dropX:dropX+4] += imgBottom
                     states[(x, r)] = self.getStateValue(field)
@@ -115,17 +127,29 @@ class Training:
                         self.game.early = True
                         return          
         nextPosSteps = self.getNextPosSteps()
+        hold_fig = self.game.nextFigure if self.game.changeFigure is None else self.game.changeFigure
+        nextPosStepsHold = self.getNextPosSteps(hold_fig)
+        nextActionsHold, nextStepsHold = zip(*nextPosStepsHold.items())
+        nextStepsHold = np.asarray(nextStepsHold)
         nextActions, nextSteps = zip(*nextPosSteps.items())
         nextSteps = np.asarray(nextSteps)
-        if (np.random.rand() <= self.epsilon or (self.game.totalMoves < self.exp.maxMemory/10 and not self.game.loadModel)) and self.game.train:
+        if (np.random.rand() <= self.epsilon or (self.game.totalMoves < self.exp.maxMemory/4 and not self.game.loadModel)) and self.game.train:
             try:
                 # Sometimes an error occured that could not be explained by debugging
                 index = np.random.randint(0,len(nextPosSteps)-1)
             except:
                 print("Something went wrong")
         else:
-            q = self.modelLearn.predict(nextSteps)
-            index = np.argmax(q)
+            q = self.modelLearn.predict(nextSteps, verbose=False)
+            q_hold = self.modelLearn.predict(nextStepsHold)
+            if max(q) > max(q_hold):
+                index = np.argmax(q)
+            else:
+                index = np.argmax(q_hold)
+                self.game.change()
+                nextActions = nextActionsHold
+                nextSteps = nextStepsHold
+            
         
         x, r = nextActions[index]
         nextState = nextSteps[index]
@@ -136,13 +160,14 @@ class Training:
         if self.game.train:
             reward = self.getReward(nextState)
             if self.game.state == GAME_OVER:
-                self.exp.remember(self.state, np.array([x,r]), reward, nextState, True)
+                #self.exp.remember(self.state, np.array([x,r]), reward, nextState, True)
+                self.exp.remember(self.state, reward, nextState, True)
             else:
-                self.exp.remember(self.state, np.array([x,r]), reward, nextState, False)
-            
+                #self.exp.remember(self.state, np.array([x,r]), reward, nextState, False)
+                self.exp.remember(self.state, reward, nextState, False)
             self.state = nextState
 
-            if self.game.loadModel or self.game.totalMoves > self.exp.maxMemory/10:
+            if self.game.loadModel or self.game.totalMoves > self.exp.maxMemory/4:
                 start = time.time()
                 inputs, outputs = self.exp.getTrainInstance(self.modelLearn, self.modelDecide, self.batchSize)
                 self.loss += self.modelLearn.train_on_batch(inputs, outputs)
@@ -150,5 +175,5 @@ class Training:
                 
                 if self.game.totalMoves % self.updateModel == 0:
                     self.game.save_model(self.modelLearn)
-                    #self.modelDecide.load_weights("model_Tetris.h5")
+                    self.modelDecide.load_weights("model_Tetris.h5")
                 

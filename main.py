@@ -6,15 +6,15 @@ Author: Hendrik Pieres
 
 '''
 done = False
-graphics = True
-manual = False
-train = False
 darkmode = True
-verbose = True
+
+graphics = False
+manual = False
+train = True
 batchSize = 256
 
 if train:
-    height = 10
+    height = 20
 else:    
     height = 20
 width = 10

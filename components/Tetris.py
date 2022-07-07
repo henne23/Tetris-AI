@@ -31,6 +31,7 @@ class Tetris:
                 self.modelLearn = self.createModel(height, width)
             else:
                 self.modelLearn = self.loadModelFunc()
+            # In anderen Ausführungen wird nicht zwischen zwei Modellen unterschieden
             self.modelDecide = self.loadModelFunc(compil=False)
             self.totalMoves = 0
             try:
@@ -40,7 +41,7 @@ class Tetris:
                 self.highscore = 0
             self.training = Training(self, self.modelLearn, self.modelDecide, batchSize)
             if train and not self.loadModel:
-                print("Place %d pieces first" % (self.training.exp.maxMemory/10))
+                print("Place %d pieces first" % (self.training.exp.maxMemory/4))
             try:
                 path = "C:/Users/hpieres/Documents/Git/Tetris-AI/EpochResults/"
                 self.epochs = max([int(re.sub(r'\D', "", x)) for x in os.listdir(path) if len(re.sub(r'\D',"",x))>0]) + 1
@@ -292,7 +293,7 @@ class Tetris:
                 lastFrame = time.time()
                 update += duration
         if not self.manual:
-            if (self.loadModel and self.train) or (self.totalMoves > self.training.exp.maxMemory / 10):
+            if (self.loadModel and self.train) or (self.totalMoves > self.training.exp.maxMemory / 4):
                 gameTime = time.time() - self.startTime
                 print("Epoch: %5d\t\tLevel: %2d\tScore: %7d\tPieces: %5d\tTime: %.2f\tTT: %.2f\tET: %.2f" % (self.epochs, self.level, self.score, self.pieces, gameTime, self.trainTime, self.evalTime))
                 self.epochs += 1
@@ -348,5 +349,6 @@ class Tetris:
             # Ansatz: Größe der Output-Schicht richtet sich nach maximal möglichen States (Rotation*xPos, Bsp. L)
             model.add(Dense(1))
             model.compile(optimizer = "adam", loss="mse")
+            model.trainable = True
             self.save_model(model, first=True)
         return model
