@@ -26,7 +26,7 @@ class Field:
             if manual:
                 self.fps = 30
             else:
-                self.fps = 1
+                self.fps = 0
             if not darkmode:
                 self.fieldColors = ["WHITE", "GRAY", "BLACK"]
             else:

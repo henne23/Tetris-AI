@@ -16,7 +16,9 @@ class Training:
         self.game = game
         self.modelLearn = modelLearn
         self.modelDecide = modelDecide
-        self.epsilon = .05
+        self.final_epsilon = .001
+        self.initial_epsilon = 1
+        self.num_epochs = 5000
         self.loss = .0
         self.state = np.zeros(4, dtype=int)
         self.updateModel = 50
@@ -25,61 +27,13 @@ class Training:
         self.exp = Experience(self.modelDecide.input_shape[-1], self.modelDecide.output_shape[-1], maxMemory=maxMemory)
 
     def getReward(self, nextState):
-
-        # Aktuelle Problematik: Es wäre wünschenswert alle vier Kriterien in den Reward des States einfließen zu lassen. Jedoch
-        # ist es schwierig, die Werte sauber zu normieren, damit bspw. ein weiteres Loch nicht weniger gewichtet wird, als eine
-        # zunehmende Höhe.
-        '''
-        # Check for killed Lines
-        if nextState[0]:
-            return nextState[0]
-        # Check for game ending
-        if self.game.done:
-            return -1
-        # Check for additional holes
-        if nextState[1] > self.state[1]:
-            return -0.5
-        # Check for new height
-        if nextState[2] > self.state[2]:
-            return -0.3
-        # Check for new bumpiness
-        if nextState[3] > self.state[3]:
-            return -0.1
-        # return a positive feedback, if the next state does not lead to a higher height, new holes or a bigger bumpiness
-        return 0.1
-        
-        killedLines = nextState[0]
-        holes = 0.5*nextState[1]/np.sum(self.game.field.values)
-        height = 0.3*nextState[2]/self.game.height
-        bumpiness = 0.2*nextState[3]/171 # 171 is the maximum bumpiness
-        if killedLines:
-            return killedLines
-        else:
-            return -(holes+height+bumpiness)
-        '''
         if self.game.done:
             return -1
         else:
             return 1 + nextState[0]**2 * self.game.width
-        '''
-        killedLines = nextState[0]
-        height = nextState[2]
-        holes = nextState[1]
-        bumpiness = nextState[3]
-        return -0.51*height + 0.76*killedLines - 0.36*holes - 0.18*bumpiness
-        
-        if self.game.done:
-            return -1
-        elif killedLines:
-            return killedLines
-        else:
-            # Formula from paper "Playing Tetris with Deep Reinforcement Learning"
-            return -0.51*height + 0.76*killedLines - 0.36*holes - 0.18*bumpiness
-        '''
         
     def getStateValue(self, field):
         fieldCopy, killedLines = self.game.break_lines(np.copy(field))
-        #height = self.game.height - np.sum(fieldCopy, axis=1).argmax()
         height = np.sum(np.sum(fieldCopy, axis=1))
         # To calculate the holes and bumpiness, you need to determine the first position with a figure for each column
         b = (fieldCopy!=0).argmax(axis=0)
@@ -126,29 +80,31 @@ class Training:
                         self.game.done = True
                         self.game.early = True
                         return          
-        nextPosSteps = self.getNextPosSteps()
         hold_fig = self.game.nextFigure if self.game.changeFigure is None else self.game.changeFigure
-        nextPosStepsHold = self.getNextPosSteps(hold_fig)
-        nextActionsHold, nextStepsHold = zip(*nextPosStepsHold.items())
-        nextStepsHold = np.asarray(nextStepsHold)
+        nextPosSteps = self.getNextPosSteps()
         nextActions, nextSteps = zip(*nextPosSteps.items())
         nextSteps = np.asarray(nextSteps)
-        if (np.random.rand() <= self.epsilon or (self.game.totalMoves < self.exp.maxMemory/4 and not self.game.loadModel)) and self.game.train:
-            try:
-                # Sometimes an error occured that could not be explained by debugging
-                index = np.random.randint(0,len(nextPosSteps)-1)
-            except:
-                print("Something went wrong")
+        nextPosStepsHold = self.getNextPosSteps(hold_fig)
+        if nextPosStepsHold:
+            nextActionsHold, nextStepsHold = zip(*nextPosStepsHold.items())
+            nextStepsHold = np.asarray(nextStepsHold)
+        # essential -> high probability for random actions at the beginning -> decreasing during the learning period
+        epsilon = self.final_epsilon + (max(self.num_epochs-self.game.totalMoves,0)*(self.initial_epsilon-self.final_epsilon)/self.num_epochs) if not self.game.loadModel else 0.001
+        if np.random.rand() <= epsilon and self.game.train:
+            index = np.random.randint(0,len(nextPosSteps)-1)
         else:
             q = self.modelLearn.predict(nextSteps, verbose=False)
-            q_hold = self.modelLearn.predict(nextStepsHold)
-            if max(q) > max(q_hold):
-                index = np.argmax(q)
+            if nextPosStepsHold:
+                q_hold = self.modelLearn.predict(nextStepsHold, verbose=False)
+                if max(q) > max(q_hold):
+                    index = np.argmax(q)
+                else:
+                    index = np.argmax(q_hold)
+                    self.game.change()
+                    nextActions = nextActionsHold
+                    nextSteps = nextStepsHold
             else:
-                index = np.argmax(q_hold)
-                self.game.change()
-                nextActions = nextActionsHold
-                nextSteps = nextStepsHold
+                index = np.argmax(q)
             
         
         x, r = nextActions[index]
@@ -160,14 +116,12 @@ class Training:
         if self.game.train:
             reward = self.getReward(nextState)
             if self.game.state == GAME_OVER:
-                #self.exp.remember(self.state, np.array([x,r]), reward, nextState, True)
                 self.exp.remember(self.state, reward, nextState, True)
             else:
-                #self.exp.remember(self.state, np.array([x,r]), reward, nextState, False)
                 self.exp.remember(self.state, reward, nextState, False)
             self.state = nextState
 
-            if self.game.loadModel or self.game.totalMoves > self.exp.maxMemory/4:
+            if self.game.loadModel or self.game.totalMoves > self.num_epochs:
                 start = time.time()
                 inputs, outputs = self.exp.getTrainInstance(self.modelLearn, self.modelDecide, self.batchSize)
                 self.loss += self.modelLearn.train_on_batch(inputs, outputs)

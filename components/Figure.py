@@ -26,11 +26,7 @@ class Figure:
         [[1, 4, 5, 6], [1, 5, 6, 9], [4, 5, 6, 9], [2, 5, 6, 10]],      # T
         [[4, 5, 9, 10], [2, 6, 5, 9]],                                  # Z
     ]
-    '''
-    Figures = [
-        [[1,1,1,1], ]
-    ]
-    '''
+
     def __init__(self, x_coord, y_coord, typ, width):
         self.x = x_coord
         self.y = y_coord
@@ -67,7 +63,7 @@ class Figure:
         return height, emptyCols
 
     def rotate(self):
-        # Die Bedingungen sollen verhindern, dass die Figur bei Rotation das Spielfeld verlässt
+        # The conditions prevent a tetromino from getting outside the game borders by rotation
         if self.typ == 0 and self.x > self.width-4:
             self.x -= (self.x % (self.width-4))
         elif self.typ < 3 and self.x < 0:
