@@ -1,5 +1,4 @@
 import pygame
-import time
 import numpy as np
 
 from constants.Colors import primary_colors, brick_colors
@@ -55,8 +54,8 @@ class Field:
                 )
         dropX, dropY = game.wouldDown()
         borderThickness = 4
-        color = game.Figure.color
-        img = game.Figure.image()
+        color = game.currentFigure.color
+        img = game.currentFigure.image()
         for i in range(4):
             for j in range(4):
                 if img[i][j]:
@@ -70,7 +69,7 @@ class Field:
         pygame.draw.rect(self.screen, primary_colors[self.fieldColors[1]], [self.xNextFigure, 60, int(self.zoom/2)*4, int(self.zoom/2)*4], 1)
         pygame.draw.rect(self.screen, primary_colors[self.fieldColors[1]], [self.xChangeFigure, 60, int(self.zoom/2)*4, int(self.zoom/2)*4], 1)
 
-        self.drawFigure(game.Figure, self.xPosGame, 30, self.zoom, game.Figure.x, game.Figure.y)
+        self.drawFigure(game.currentFigure, self.xPosGame, 30, self.zoom, game.currentFigure.x, game.currentFigure.y)
         self.drawFigure(game.changeFigure, self.xChangeFigure, 60, int(self.zoom/2))
         self.drawFigure(game.nextFigure, self.xNextFigure, 60, int(self.zoom/2))
 

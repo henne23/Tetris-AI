@@ -41,7 +41,10 @@ class Figure:
             typ = self.typ
         if rotation is None:
             rotation = self.rotation
-        rects = self.Figures[typ][rotation]
+        try:
+            rects = self.Figures[typ][rotation]
+        except:
+            print("Something went wrong")
         binar = np.zeros(16, dtype=int)
         for p in rects:
             binar[p] = 1

@@ -7,23 +7,16 @@ Author: Hendrik Pieres
 '''
 done = False
 darkmode = True
+batchSize = 512
 
-graphics = False
-manual = False
-train = True
-batchSize = 256
-
-if train:
-    height = 20
-else:    
-    height = 20
+height = 20
 width = 10
-game = Tetris(height, width, graphics, manual, train, batchSize, darkmode)
+game = Tetris(height, width, batchSize, darkmode)
 
 while not done:
     q = False
     game.init()
-    if manual and not game.early:
+    if game.manual and not game.early:
         while not q:
             for event in pygame.event.get():
                 if event.type == pygame.KEYDOWN:

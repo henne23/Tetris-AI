@@ -9,6 +9,7 @@ import random
 import time
 import pygame
 import matplotlib.pyplot as plt
+from GUI.Settings import Settings
 
 '''
 Author: Hendrik Pieres
@@ -18,21 +19,22 @@ Basic game engine by TheMorpheus407
 '''
 
 class Tetris:
-    def __init__(self, height, width, graphics, manual, train, batchSize, darkmode):
+    def __init__(self, height, width, batchSize, darkmode):
         # Initialize variables for all games
         self.height = height
         self.width = width
-        self.graphics = graphics
-        self.manual = manual
-        self.train = train
+        self.graphics = bool
+        self.manual = bool
+        self.train = bool
+        Settings(self)
         self.darkmode = darkmode
-        self.max_epochs = 1000
+        self.max_epochs = 500
         self.max_points = 300000
         self.all_scores = []
-        if not manual:
+        if not self.manual:
             from AI.Training import Training
             self.loadModel = False
-            if train:
+            if self.train:
                 self.modelLearn = self.createModel(height, width)
             else:
                 self.modelLearn = self.loadModelFunc()
@@ -45,7 +47,7 @@ class Tetris:
             except:
                 self.highscore = 0
             self.training = Training(self, self.modelLearn, self.modelDecide, batchSize)
-            if train and not self.loadModel:
+            if self.train and not self.loadModel:
                 print("Place %d pieces first" % (self.training.num_epochs))
             try:
                 path = "C:/Users/hpieres/Documents/Git/Tetris-AI/EpochResults/"
@@ -63,10 +65,9 @@ class Tetris:
         self.points = [40, 100, 300, 1200]
         self.killedLines, self.score, self.figureCounter, self.pieces, self.currentHeight = 0, 0, 0, 0, 0
         self.state = START
-        self.figureSet = [0,1,2,3,4,5,6]
+        self.figureSet = random.sample(range(7),7)
         self.changeFigure = None
-        self.nextFigure = self.figureSet[self.figureCounter+1]
-        self.new_figure()
+        self.currentFigure, self.nextFigure = self.create_new_figure()
         self.start()
 
     def plot_results(self):
@@ -81,7 +82,7 @@ class Tetris:
         np.savetxt("Scores.txt", np.array(self.all_scores))
         plt.show()
 
-    def steuerung(self):
+    def control(self):
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 self.done = True
@@ -123,58 +124,59 @@ class Tetris:
         if self.pressing_right:
             self.right()
     
-    def new_figure(self):
+    def create_new_figure(self):
         typ = self.figureSet[self.figureCounter]
-        next_figure = Figure(3, 0, typ, self.width)
-        if self.intersects(next_figure):
+        new_figure = Figure(3, 0, typ, self.width)
+        if self.intersects(new_figure):
             self.state = GAME_OVER
             self.done = True
             return
-        self.Figure = next_figure
+        currentFigure = new_figure
         if self.figureCounter == len(self.figureSet)-1:
             self.figureSet = random.sample(range(len(self.figureSet)),len(self.figureSet))
             self.figureCounter = 0
         else:
             self.figureCounter += 1
         typ = self.figureSet[self.figureCounter]
-        self.nextFigure = Figure(3,0,typ,self.width)
+        nextFigure = Figure(3,0,typ,self.width)
         self.switch = False
+        return currentFigure, nextFigure
 
     def go_down(self):
-        self.Figure.y += 1
+        self.currentFigure.y += 1
         if self.intersects():
-            self.Figure.y -= 1
+            self.currentFigure.y -= 1
             self.freeze()
             
     def side(self, dx):
-        old_x = self.Figure.x
+        old_x = self.currentFigure.x
         edge = False
-        fig = self.Figure.image()
+        fig = self.currentFigure.image()
         for i in range(4):
             for j in range(4):
                 if fig[i][j]:
                     if (
-                        j + self.Figure.x + dx > self.width - 1  # beyond right border
-                        or j + self.Figure.x + dx < 0  # beyond left border
+                        j + self.currentFigure.x + dx > self.width - 1  # beyond right border
+                        or j + self.currentFigure.x + dx < 0  # beyond left border
                     ):
                         edge = True
         if not edge:
-            self.Figure.x += dx
+            self.currentFigure.x += dx
         if self.intersects():
-            self.Figure.x = old_x
+            self.currentFigure.x = old_x
 
     def change(self):
         # Function checks whether the figure was changed within this move
-        # Otherwise
+        # Otherwise do the switch
         if not self.switch:
             if self.changeFigure == None:
-                self.changeFigure = self.Figure
-                self.new_figure()
+                self.changeFigure = self.currentFigure
+                self.currentFigure, self.nextFigure = self.create_new_figure()
             else:
-                figureSwitch = self.Figure
-                self.Figure = self.changeFigure
-                self.Figure.y = 0
-                self.Figure.x = 3
+                figureSwitch = self.currentFigure
+                self.currentFigure = self.changeFigure
+                self.currentFigure.y = 0
+                self.currentFigure.x = 3
                 self.changeFigure = figureSwitch
             self.switch = True
                 
@@ -190,17 +192,17 @@ class Tetris:
 
     def down(self):
         while not self.intersects():
-            self.Figure.y += 1
-        self.Figure.y -= 1
+            self.currentFigure.y += 1
+        self.currentFigure.y -= 1
         self.freeze()
         b = (self.field.values!=0).argmax(axis=0)
         self.currentHeight = min(np.where(b>0,b,self.height))
 
     def wouldDown(self, fig=None, x=None, img=None, height = None, emptyCols = None, start = None):
         if fig is None:
-            fig = self.Figure
+            fig = self.currentFigure
         if x is None:
-            x = self.Figure.x
+            x = self.currentFigure.x
         if img is None:
             img = fig.image()
         # Because not every Tetromino is placed on the left side, x can take -1 as value. Then only the first THREE columns need to be checked
@@ -212,13 +214,13 @@ class Tetris:
                             return x, i - 1
         
     def rotate(self):
-        old_rotation = self.Figure.rotation
-        self.Figure.rotate()
+        old_rotation = self.currentFigure.rotation
+        self.currentFigure.rotate()
         if self.intersects():
-            self.Figure.rotation = old_rotation
+            self.currentFigure.rotation = old_rotation
 
     def intersects(self, fig=None):
-        fig = self.Figure if (fig is None) else fig
+        fig = self.currentFigure if (fig is None) else fig
         img = fig.image()
         intersection = False
         for i in range(4):
@@ -232,14 +234,14 @@ class Tetris:
         return intersection
 
     def freeze(self):
-        fig = self.Figure.image()
+        fig = self.currentFigure.image()
         for i in range(4):
             for j in range(4):
                 if fig[i][j]:
-                    self.field.values[i + self.Figure.y][j + self.Figure.x] = 1
-                    self.field.colors[i + self.Figure.y][j + self.Figure.x] = (self.Figure.typ + 1)
+                    self.field.values[i + self.currentFigure.y][j + self.currentFigure.x] = 1
+                    self.field.colors[i + self.currentFigure.y][j + self.currentFigure.x] = (self.currentFigure.typ + 1)
         self.break_lines()
-        self.new_figure()
+        self.currentFigure, self.nextFigure = self.create_new_figure()
 
     def break_lines(self, field=None):
         scoreUpdate = False
@@ -283,7 +285,7 @@ class Tetris:
                 if self.state == START and update > acc:
                     self.go_down()
                     update = 0.0
-                self.steuerung()
+                self.control()
             elif self.training is not None:
                 if self.score > self.max_points:
                     self.done = True

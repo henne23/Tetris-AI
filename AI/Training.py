@@ -23,7 +23,7 @@ class Training:
         self.state = np.zeros(4, dtype=int)
         self.updateModel = 50
         self.batchSize = batchSize
-        maxMemory = batchSize * int(20000/batchSize)
+        maxMemory = batchSize * int(10000/batchSize)
         self.exp = Experience(self.modelDecide.input_shape[-1], self.modelDecide.output_shape[-1], maxMemory=maxMemory)
 
     def getReward(self, nextState):
@@ -46,7 +46,7 @@ class Training:
     def getNextPosSteps(self, fig=None):
         states = {}
         if fig is None:
-            fig = self.game.Figure
+            fig = self.game.currentFigure
         numRot = len(fig.Figures[fig.typ])
         for r in range(numRot):
             length, start = fig.length(fig.typ, r)
@@ -109,8 +109,8 @@ class Training:
         
         x, r = nextActions[index]
         nextState = nextSteps[index]
-        self.game.Figure.x = x
-        self.game.Figure.rotation = r
+        self.game.currentFigure.x = x
+        self.game.currentFigure.rotation = r
         self.game.down()
 
         if self.game.train:
