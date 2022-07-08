@@ -77,7 +77,7 @@ class Tetris:
         plt.title("Scores")
         plt.xlabel("Epochs")
         plt.ylabel("Score")
-        plt.xticks(range(0,1001,100))
+        plt.xticks(range(0,self.max_epochs+1,100))
         plt.savefig("Score by epoch.png")
         np.savetxt("Scores.txt", np.array(self.all_scores))
         plt.show()
@@ -130,7 +130,7 @@ class Tetris:
         if self.intersects(new_figure):
             self.state = GAME_OVER
             self.done = True
-            return
+            return new_figure, None
         currentFigure = new_figure
         if self.figureCounter == len(self.figureSet)-1:
             self.figureSet = random.sample(range(len(self.figureSet)),len(self.figureSet))
@@ -198,7 +198,8 @@ class Tetris:
         b = (self.field.values!=0).argmax(axis=0)
         self.currentHeight = min(np.where(b>0,b,self.height))
 
-    def wouldDown(self, fig=None, x=None, img=None, height = None, emptyCols = None, start = None):
+    def wouldDown(self, fig=None, x=None, img=None):
+        # in dieser Funktion steckt ein Fehler (vermutlich bzgl. self.currentHeight)
         if fig is None:
             fig = self.currentFigure
         if x is None:
@@ -206,11 +207,16 @@ class Tetris:
         if img is None:
             img = fig.image()
         # Because not every Tetromino is placed on the left side, x can take -1 as value. Then only the first THREE columns need to be checked
-        for i in range(max(self.currentHeight-4,0), self.height):
-            for j in range(4):
-                for k in range(4):
+        end = min(x+4,10)
+        start = max(x,0)
+        b = (self.field.values!=0).argmax(axis=0)
+        #b = np.where(b>0, b, 20-b)
+        for i in range(min(b[start:end])-4, self.height):
+        #for i in range(max(self.currentHeight-4,0), self.height):
+            for j in range(3,-1,-1):
+                for k in range(3,-1,-1):
                     if img[j][k]:
-                        if j + i > self.height - 1 or self.field.values[j + i][k + x] > 0:
+                        if (j + i > self.height - 1 or self.field.values[j + i][k + x] > 0) and (j+i) >= 0:
                             return x, i - 1
         
     def rotate(self):
@@ -256,7 +262,7 @@ class Tetris:
         if killedLines > 0:
             for index, val in enumerate(lines):
                 if val > 9:
-                    for i in range(index, 1, -1):
+                    for i in range(index, 0, -1):
                         for j in range(self.width):
                             field[i][j] = field[i - 1][j]
                             if scoreUpdate:
@@ -293,6 +299,8 @@ class Tetris:
                     self.training.train()
                     self.pieces += 1
                     self.totalMoves += 1
+                    if self.pieces > 1000:
+                        print("Something needs to be checked")
 
             if self.graphics:
                 self.field.update(self)

@@ -7,7 +7,7 @@ Author: Hendrik Pieres
 '''
 done = False
 darkmode = True
-batchSize = 512
+batchSize = 256
 
 height = 20
 width = 10

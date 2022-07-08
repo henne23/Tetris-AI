@@ -23,7 +23,7 @@ class Training:
         self.state = np.zeros(4, dtype=int)
         self.updateModel = 50
         self.batchSize = batchSize
-        maxMemory = batchSize * int(10000/batchSize)
+        maxMemory = batchSize * int(20000/batchSize)
         self.exp = Experience(self.modelDecide.input_shape[-1], self.modelDecide.output_shape[-1], maxMemory=maxMemory)
 
     def getReward(self, nextState):
@@ -34,13 +34,13 @@ class Training:
         
     def getStateValue(self, field):
         fieldCopy, killedLines = self.game.break_lines(np.copy(field))
-        height = np.sum(np.sum(fieldCopy, axis=1))
-        # To calculate the holes and bumpiness, you need to determine the first position with a figure for each column
         b = (fieldCopy!=0).argmax(axis=0)
+        column_height = np.where(b>0,self.game.height-b,0)
+        height = np.sum(column_height)
+        # To calculate the holes and bumpiness, you need to determine the first position with a figure for each column
         # For each column, starting from the first figure, it is checked whether zero values occur. All columns add up to the resulting holes.
         holes = np.sum([fieldCopy[x][i] < 1 for i in range(0, self.game.width) for x in range(b[i], self.game.height) if b[i] > 0])
-        b = np.where(b>0,self.game.height-b,0)
-        bumpiness = np.sum(np.abs(b[:-1]-b[1:]))
+        bumpiness = np.sum(np.abs(column_height[:-1]-column_height[1:]))
         return np.array([killedLines, holes, height, bumpiness])
 
     def getNextPosSteps(self, fig=None):
@@ -52,11 +52,11 @@ class Training:
             length, start = fig.length(fig.typ, r)
             maxX = self.game.width - length + 1
             img = fig.image(fig.typ, r)
-            height, emptyCols = fig.height(img)
+            height, emptyRows = fig.height(img)
             for x in range(start, maxX+start):
-                dropX, dropY = self.game.wouldDown(x=x, img=img, height=height, emptyCols=emptyCols, start=start)
+                dropX, dropY = self.game.wouldDown(x=x, img=img)
                 # otherwise no valid move
-                if dropY >= 0:
+                if dropY >= -emptyRows:
                     field = np.copy(self.game.field.values)
                     # Diese For-Schleife konnte noch nicht aufgelöst werden
                     for i in range(4):
@@ -82,16 +82,25 @@ class Training:
                         return          
         hold_fig = self.game.nextFigure if self.game.changeFigure is None else self.game.changeFigure
         nextPosSteps = self.getNextPosSteps()
-        nextActions, nextSteps = zip(*nextPosSteps.items())
-        nextSteps = np.asarray(nextSteps)
+        if nextPosSteps:
+            nextActions, nextSteps = zip(*nextPosSteps.items())
+            nextSteps = np.asarray(nextSteps)
         nextPosStepsHold = self.getNextPosSteps(hold_fig)
         if nextPosStepsHold:
             nextActionsHold, nextStepsHold = zip(*nextPosStepsHold.items())
             nextStepsHold = np.asarray(nextStepsHold)
+            # if only the hold figure works, switch and use this for the following calculations
+            if nextPosSteps is None:
+                nextPosSteps = nextPosStepsHold
+                nextPosStepsHold = None
+                self.game.change()
+        if not nextPosSteps and not nextPosStepsHold:
+            self.game.done = True
+            return
         # essential -> high probability for random actions at the beginning -> decreasing during the learning period
         epsilon = self.final_epsilon + (max(self.num_epochs-self.game.totalMoves,0)*(self.initial_epsilon-self.final_epsilon)/self.num_epochs) if not self.game.loadModel else 0.001
         if np.random.rand() <= epsilon and self.game.train:
-            index = np.random.randint(0,len(nextPosSteps)-1)
+            index = np.random.randint(0,len(nextPosSteps)-1) if len(nextPosSteps) > 1 else 0
         else:
             q = self.modelLearn.predict(nextSteps, verbose=False)
             if nextPosStepsHold:

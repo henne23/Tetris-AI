@@ -1,3 +1,4 @@
+import imghdr
 import numpy as np
 from constants.Colors import brick_colors
 
@@ -19,11 +20,11 @@ class Figure:
 
     Figures = [
         [[0, 4, 8, 12], [4, 5, 6, 7]],                                  # I
-        [[0, 4, 5, 6], [1, 2, 5, 9], [4, 5, 6, 10], [2, 6, 9, 10]],     # J
+        [[4, 8, 9, 10], [1, 2, 5, 9], [4, 5, 6, 10], [2, 6, 9, 10]],    # J
         [[4, 5, 6, 8],[1, 2, 6, 10], [2, 4, 5, 6], [1, 5, 9, 10]],      # L
-        [[0, 1, 4, 5]],                                                 # O
+        [[5, 6, 9, 10]],                                                # O
         [[5, 6, 8, 9], [1, 5, 6, 10]],                                  # S
-        [[1, 4, 5, 6], [1, 5, 6, 9], [4, 5, 6, 9], [2, 5, 6, 10]],      # T
+        [[5, 8, 9, 10], [1, 5, 6, 9], [4, 5, 6, 9], [2, 5, 6, 10]],     # T
         [[4, 5, 9, 10], [2, 6, 5, 9]],                                  # Z
     ]
 
@@ -62,8 +63,9 @@ class Figure:
         # place the Tetromino on the right place in the field.
         fig = np.sum(img, axis=1)
         height = np.sum([x > 0 for x in fig])
-        emptyCols = (np.flip(fig)!=0).argmax(axis=0)
-        return height, emptyCols
+        # Returns how many rows are empty from above
+        emptyRows = (np.sum(img, axis=1)!=0).argmax()
+        return height, emptyRows
 
     def rotate(self):
         # The conditions prevent a tetromino from getting outside the game borders by rotation
