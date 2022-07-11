@@ -29,14 +29,15 @@ class Tetris:
         self.darkmode = bool
         # tkinter GUI for the four settings above
         Settings(self)
-        self.max_epochs = 1500
+        self.max_epochs = 2500
         self.max_points = 500000
         self.top = 100
         self.all_scores = []
+        self.all_holes = []
         self.totalTime = 0.0
         if not self.manual:
             from AI.Training import Training
-            self.loadModel = True
+            self.loadModel = False
             if self.train:
                 self.modelLearn = self.createModel()
             else:
@@ -50,8 +51,8 @@ class Tetris:
             except:
                 self.highscore = 0
             self.training = Training(self, self.modelLearn, self.modelDecide, batchSize)
-            if self.train and not self.loadModel:
-                print("Place %d pieces first" % (self.training.num_epochs))
+            #if self.train and not self.loadModel:
+             #   print("Place %d pieces first" % (self.training.num_epochs))
             try:
                 path = "C:/Users/hpieres/Documents/Git/Tetris-AI/EpochResults/"
                 self.epochs = max([int(re.sub(r'\D', "", x)) for x in os.listdir(path) if len(re.sub(r'\D',"",x))>0]) + 1
@@ -74,6 +75,8 @@ class Tetris:
         self.start()
 
     def plot_results(self):
+        np.savetxt("Scores.txt", np.array(self.all_scores))
+        np.savetxt("Holes.txt", np.array(self.all_holes))
         plt.style.use("fivethirtyeight")
         plt.figure(figsize=(18,8))
         top = [max(self.all_scores[i:i+self.top]) for i in range(len(self.all_scores)-self.top)]
@@ -83,7 +86,14 @@ class Tetris:
         plt.ylabel("Score")
         plt.xticks(range(0,len(self.all_scores)-self.top,self.top))
         plt.savefig("Score by epoch.png")
-        np.savetxt("Scores.txt", np.array(self.all_scores))
+        plt.show()
+        plt.figure(figsize=(18,8))
+        plt.plot(self.all_holes)
+        plt.title("Holes over Epochs")
+        plt.xlabel("Epochs")
+        plt.ylabel("Holes")
+        plt.xticks(range(0, len(self.all_holes), 100))
+        plt.savefig("Holes over epochs.png")
         plt.show()
 
     def control(self):
@@ -315,11 +325,13 @@ class Tetris:
                 lastFrame = time.time()
                 update += duration
         if not self.manual:
-            if self.train and (self.loadModel or self.totalMoves > self.training.num_epochs):
+            if self.train:# and (self.loadModel or self.totalMoves > self.training.num_epochs):
                 # Statistics
                 gameTime = time.time() - self.startTime
                 self.totalTime += gameTime
-                print("Epoch: %5d\tLevel: %2d\tScore: %7d\tPieces: %5d\tTime: %.2f\tLines: %d\tTotal Moves: %d\tTotal Time: %.2f" % (self.epochs, self.level, self.score, self.pieces, gameTime, self.killedLines, self.totalMoves, self.totalTime))
+                holes = self.training.getHoles(self.field.values)
+                self.all_holes.append(holes)
+                print("Epoch: %5d\tLevel: %2d\tScore: %7d\tPieces: %5d\tTime: %.2f\tLines: %d\tTotal Moves: %d\tHoles: %d\tTotal Time: %.2f" % (self.epochs, self.level, self.score, self.pieces, gameTime, self.killedLines, self.totalMoves, holes, self.totalTime))
                 self.epochs += 1
                 self.all_scores.append(self.score)
                 self.training.loss = 0.0

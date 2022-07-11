@@ -31,7 +31,11 @@ class Training:
             return -1
         else:
             return 1 + nextState[0]**2 * self.game.width
-        
+
+    def getHoles(self, field):
+        b = (field!=0).argmax(axis=0)
+        return np.sum([field[x][i] < 1 for i in range(0, self.game.width) for x in range(b[i], self.game.height) if b[i] > 0])
+
     def getStateValue(self, field):
         fieldCopy, killedLines = self.game.break_lines(np.copy(field))
         b = (fieldCopy!=0).argmax(axis=0)
@@ -39,7 +43,7 @@ class Training:
         height = np.sum(column_height)
         # To calculate the holes and bumpiness, you need to determine the first position with a figure for each column
         # For each column, starting from the first figure, it is checked whether zero values occur. All columns add up to the resulting holes.
-        holes = np.sum([fieldCopy[x][i] < 1 for i in range(0, self.game.width) for x in range(b[i], self.game.height) if b[i] > 0])
+        holes = self.getHoles(field=fieldCopy)
         bumpiness = np.sum(np.abs(column_height[:-1]-column_height[1:]))
         return np.array([killedLines, holes, height, bumpiness])
 
@@ -128,13 +132,13 @@ class Training:
             self.state = nextState
 
             # the training starts after 5000 epochs to fill the memory or if the training is based on existing weights
-            if self.game.loadModel or self.game.totalMoves > self.num_epochs:
-                start = time.time()
-                inputs, outputs = self.exp.getTrainInstance(self.modelLearn, self.modelDecide, self.batchSize)
-                self.loss += self.modelLearn.train_on_batch(inputs, outputs)
-                self.game.trainTime += (time.time() - start)
-                
-                if self.game.totalMoves % self.updateModel == 0:
-                    self.game.save_model(self.modelLearn)
-                    self.modelDecide.load_weights("model_Tetris.h5")
+            #if self.game.loadModel or self.game.totalMoves > self.num_epochs:
+            start = time.time()
+            inputs, outputs = self.exp.getTrainInstance(self.modelLearn, self.modelDecide, self.batchSize)
+            self.loss += self.modelLearn.train_on_batch(inputs, outputs)
+            self.game.trainTime += (time.time() - start)
+            
+            if self.game.totalMoves % self.updateModel == 0:
+                self.game.save_model(self.modelLearn)
+                self.modelDecide.load_weights("model_Tetris.h5")
                 
