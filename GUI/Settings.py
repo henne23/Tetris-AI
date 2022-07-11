@@ -1,4 +1,5 @@
 import tkinter as tk
+import sys
 
 
 class Settings():
@@ -22,7 +23,9 @@ class Settings():
         self.root.mainloop()
 
     def on_closing(self, event=None):
-        self.get_settings()
+        #self.get_settings()
+        self.root.destroy()
+        sys.exit(0)
 
     def get_settings(self):
         self.game.graphics, self.game.manual, self.game.train, self.game.darkmode = [var.get() for var in self.settings]

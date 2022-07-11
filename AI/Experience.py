@@ -6,7 +6,7 @@ Author: Hendrik Pieres
 '''
 
 class Experience:
-    def __init__(self, inputSize, outputSize, maxMemory = 20000, discount = .95):
+    def __init__(self, inputSize, outputSize, maxMemory = 30000, discount = .99):
         self.maxMemory = maxMemory
         self.stateMemory = np.zeros((self.maxMemory, inputSize), dtype=int)
         self.rewardMemory = np.zeros((self.maxMemory))

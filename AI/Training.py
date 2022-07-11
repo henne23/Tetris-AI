@@ -18,7 +18,7 @@ class Training:
         self.modelDecide = modelDecide
         self.final_epsilon = 0
         self.initial_epsilon = 1
-        self.num_epochs = 5000
+        self.decay_epochs = int(game.max_epochs*.7)
         self.loss = .0
         self.state = np.zeros(4, dtype=int)
         self.updateModel = 50
@@ -98,13 +98,13 @@ class Training:
             nextStepsHold = np.asarray(nextStepsHold)
         # essential -> high probability for random actions at the beginning -> decreasing during the learning period
         # decision for random or best action based on the neural network
-        epsilon = self.final_epsilon + (max(self.num_epochs-self.game.totalMoves,0)*(self.initial_epsilon-self.final_epsilon)/self.num_epochs) if not self.game.loadModel else self.final_epsilon
+        epsilon = self.final_epsilon + (max(self.decay_epochs-self.game.epochs,0)*(self.initial_epsilon-self.final_epsilon)/self.decay_epochs) if not self.game.loadModel else self.final_epsilon
         if np.random.rand() <= epsilon and self.game.train:
             index = np.random.randint(0,len(nextPosSteps)-1) if len(nextPosSteps) > 1 else 0
         else:
-            q = self.modelLearn.predict(nextSteps, verbose=False)
+            q = self.modelDecide.predict(nextSteps, verbose=False)
             if nextPosStepsHold:
-                q_hold = self.modelLearn.predict(nextStepsHold, verbose=False)
+                q_hold = self.modelDecide.predict(nextStepsHold, verbose=False)
                 if max(q) >= max(q_hold):
                     index = np.argmax(q)
                 else:

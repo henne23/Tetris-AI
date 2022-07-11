@@ -29,7 +29,7 @@ class Tetris:
         self.darkmode = bool
         # tkinter GUI for the four settings above
         Settings(self)
-        self.max_epochs = 2500
+        self.max_epochs = 3000
         self.max_points = 500000
         self.top = 100
         self.all_scores = []
@@ -76,7 +76,6 @@ class Tetris:
 
     def plot_results(self):
         np.savetxt("Scores.txt", np.array(self.all_scores))
-        np.savetxt("Holes.txt", np.array(self.all_holes))
         plt.style.use("fivethirtyeight")
         plt.figure(figsize=(18,8))
         top = [max(self.all_scores[i:i+self.top]) for i in range(len(self.all_scores)-self.top)]
@@ -86,14 +85,6 @@ class Tetris:
         plt.ylabel("Score")
         plt.xticks(range(0,len(self.all_scores)-self.top,self.top))
         plt.savefig("Score by epoch.png")
-        plt.show()
-        plt.figure(figsize=(18,8))
-        plt.plot(self.all_holes)
-        plt.title("Holes over Epochs")
-        plt.xlabel("Epochs")
-        plt.ylabel("Holes")
-        plt.xticks(range(0, len(self.all_holes), 100))
-        plt.savefig("Holes over epochs.png")
         plt.show()
 
     def control(self):
@@ -331,7 +322,7 @@ class Tetris:
                 self.totalTime += gameTime
                 holes = self.training.getHoles(self.field.values)
                 self.all_holes.append(holes)
-                print("Epoch: %5d\tLevel: %2d\tScore: %7d\tPieces: %5d\tTime: %.2f\tLines: %d\tTotal Moves: %d\tHoles: %d\tTotal Time: %.2f" % (self.epochs, self.level, self.score, self.pieces, gameTime, self.killedLines, self.totalMoves, holes, self.totalTime))
+                print("Epoch: %5d\tLevel: %2d\tScore: %7d\tPieces: %5d\tLines: %d\tTotal Moves: %d\tTime/Total Time: %.2f / %.2f" % (self.epochs, self.level, self.score, self.pieces, self.killedLines, self.totalMoves, gameTime, self.totalTime))
                 self.epochs += 1
                 self.all_scores.append(self.score)
                 self.training.loss = 0.0
