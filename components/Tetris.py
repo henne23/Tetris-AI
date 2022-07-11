@@ -19,23 +19,26 @@ Basic game engine by TheMorpheus407
 '''
 
 class Tetris:
-    def __init__(self, height, width, batchSize, darkmode):
+    def __init__(self, height, width, batchSize):
         # Initialize variables for all games
         self.height = height
         self.width = width
         self.graphics = bool
         self.manual = bool
         self.train = bool
+        self.darkmode = bool
+        # tkinter GUI for the four settings above
         Settings(self)
-        self.darkmode = darkmode
-        self.max_epochs = 500
-        self.max_points = 300000
+        self.max_epochs = 1500
+        self.max_points = 500000
+        self.top = 100
         self.all_scores = []
+        self.totalTime = 0.0
         if not self.manual:
             from AI.Training import Training
-            self.loadModel = False
+            self.loadModel = True
             if self.train:
-                self.modelLearn = self.createModel(height, width)
+                self.modelLearn = self.createModel()
             else:
                 self.modelLearn = self.loadModelFunc()
             # Implementation of Double Q-Learning
@@ -63,7 +66,7 @@ class Tetris:
         self.done, self.early, self.pressing_down, self.pressing_left, self.pressing_right, self.switch = False, False, False, False, False, False
         self.level = 1
         self.points = [40, 100, 300, 1200]
-        self.killedLines, self.score, self.figureCounter, self.pieces, self.currentHeight = 0, 0, 0, 0, 0
+        self.killedLines, self.score, self.figureCounter, self.pieces = 0, 0, 0, 0
         self.state = START
         self.figureSet = random.sample(range(7),7)
         self.changeFigure = None
@@ -73,11 +76,12 @@ class Tetris:
     def plot_results(self):
         plt.style.use("fivethirtyeight")
         plt.figure(figsize=(18,8))
-        plt.plot(self.all_scores)
+        top = [max(self.all_scores[i:i+self.top]) for i in range(len(self.all_scores)-self.top)]
+        plt.plot(top)
         plt.title("Scores")
         plt.xlabel("Epochs")
         plt.ylabel("Score")
-        plt.xticks(range(0,self.max_epochs+1,100))
+        plt.xticks(range(0,len(self.all_scores)-self.top,self.top))
         plt.savefig("Score by epoch.png")
         np.savetxt("Scores.txt", np.array(self.all_scores))
         plt.show()
@@ -125,13 +129,17 @@ class Tetris:
             self.right()
     
     def create_new_figure(self):
+        # Creates a new figure and checks for direct intersection
         typ = self.figureSet[self.figureCounter]
         new_figure = Figure(3, 0, typ, self.width)
-        if self.intersects(new_figure):
+        y = self.wouldDown(fig=new_figure, x=new_figure.x)
+        border = 0 if new_figure.typ == 0 else -1
+        if y < border:
             self.state = GAME_OVER
             self.done = True
             return new_figure, None
         currentFigure = new_figure
+        # Creates a new figure set with seven figures (random order)
         if self.figureCounter == len(self.figureSet)-1:
             self.figureSet = random.sample(range(len(self.figureSet)),len(self.figureSet))
             self.figureCounter = 0
@@ -195,29 +203,25 @@ class Tetris:
             self.currentFigure.y += 1
         self.currentFigure.y -= 1
         self.freeze()
-        b = (self.field.values!=0).argmax(axis=0)
-        self.currentHeight = min(np.where(b>0,b,self.height))
 
-    def wouldDown(self, fig=None, x=None, img=None):
-        # in dieser Funktion steckt ein Fehler (vermutlich bzgl. self.currentHeight)
+    def wouldDown(self, fig=None, x=None, img=None, y=None):
+        # Function is used several times (GUI update, AI learning, etc.)
         if fig is None:
             fig = self.currentFigure
         if x is None:
             x = self.currentFigure.x
         if img is None:
             img = fig.image()
-        # Because not every Tetromino is placed on the left side, x can take -1 as value. Then only the first THREE columns need to be checked
         end = min(x+4,10)
         start = max(x,0)
         b = (self.field.values!=0).argmax(axis=0)
-        #b = np.where(b>0, b, 20-b)
-        for i in range(min(b[start:end])-4, self.height):
-        #for i in range(max(self.currentHeight-4,0), self.height):
+        start_check = min(b[start:end])-4 if y is None else y
+        for i in range(start_check, self.height):
             for j in range(3,-1,-1):
                 for k in range(3,-1,-1):
                     if img[j][k]:
                         if (j + i > self.height - 1 or self.field.values[j + i][k + x] > 0) and (j+i) >= 0:
-                            return x, i - 1
+                            return i - 1
         
     def rotate(self):
         old_rotation = self.currentFigure.rotation
@@ -226,6 +230,7 @@ class Tetris:
             self.currentFigure.rotation = old_rotation
 
     def intersects(self, fig=None):
+        # Checks for intersection after every move (downwards or sidewards)
         fig = self.currentFigure if (fig is None) else fig
         img = fig.image()
         intersection = False
@@ -240,6 +245,7 @@ class Tetris:
         return intersection
 
     def freeze(self):
+        # Updates the field values after intersection
         fig = self.currentFigure.image()
         for i in range(4):
             for j in range(4):
@@ -267,6 +273,7 @@ class Tetris:
                             field[i][j] = field[i - 1][j]
                             if scoreUpdate:
                                 fieldCol[i][j] = fieldCol[i - 1][j]
+            # scoreUpdate checks whether this function is used during a real game or AI learning
             if scoreUpdate:
                 self.score += self.points[killedLines - 1] * self.level
                 self.killedLines += killedLines
@@ -287,6 +294,7 @@ class Tetris:
         while not self.done:
             if self.manual:
                 lastFrame = time.time()
+                # Speed increase during manual play
                 acc = 0.9**self.level
                 if self.state == START and update > acc:
                     self.go_down()
@@ -299,8 +307,6 @@ class Tetris:
                     self.training.train()
                     self.pieces += 1
                     self.totalMoves += 1
-                    if self.pieces > 1000:
-                        print("Something needs to be checked")
 
             if self.graphics:
                 self.field.update(self)
@@ -309,9 +315,11 @@ class Tetris:
                 lastFrame = time.time()
                 update += duration
         if not self.manual:
-            if (self.loadModel and self.train) or (self.totalMoves > self.training.num_epochs):
+            if self.train and (self.loadModel or self.totalMoves > self.training.num_epochs):
+                # Statistics
                 gameTime = time.time() - self.startTime
-                print("Epoch: %5d\tLevel: %2d\tScore: %7d\tPieces: %5d\tTime: %.2f\tTT: %.2f\tTotal Moves: %d" % (self.epochs, self.level, self.score, self.pieces, gameTime, self.trainTime, self.totalMoves))
+                self.totalTime += gameTime
+                print("Epoch: %5d\tLevel: %2d\tScore: %7d\tPieces: %5d\tTime: %.2f\tLines: %d\tTotal Moves: %d\tTotal Time: %.2f" % (self.epochs, self.level, self.score, self.pieces, gameTime, self.killedLines, self.totalMoves, self.totalTime))
                 self.epochs += 1
                 self.all_scores.append(self.score)
                 self.training.loss = 0.0
@@ -352,7 +360,7 @@ class Tetris:
             print("No weights found")
         return model
 
-    def createModel(self, height, width, hidden_size=64, compil = True):
+    def createModel(self, hidden_size=64, compil = True):
         from keras.models import Sequential
         from keras.layers import Dense
         model = None
@@ -364,6 +372,5 @@ class Tetris:
             model.add(Dense(hidden_size, activation="relu"))
             model.add(Dense(1))
             model.compile(optimizer = "adam", loss="mse")
-            model.trainable = True
             self.save_model(model, first=True)
         return model

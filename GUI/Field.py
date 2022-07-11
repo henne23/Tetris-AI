@@ -15,13 +15,16 @@ class Field:
     def __init__(self, height, width, graphics, darkmode, manual):
         if graphics:
             pygame.init()
-            self.screen = pygame.display.set_mode((580, 670))
+            screen_width = 600
+            screen_height = 670
+            self.screen = pygame.display.set_mode((screen_width, screen_height))
             pygame.display.set_caption("Tetris-AI")
             self.clock = pygame.time.Clock()
             self.zoom = 30
-            self.xPosGame = 130
+            self.xPosGame = (screen_width-(self.zoom*width)) / 2
             self.xNextFigure = 30
             self.xChangeFigure = 490
+            self.xScore = 460
             if manual:
                 self.fps = 30
             else:
@@ -52,7 +55,8 @@ class Field:
                     [self.xPosGame + j * self.zoom, 30 + i * self.zoom, self.zoom, self.zoom],
                     just_border,
                 )
-        dropX, dropY = game.wouldDown()
+        dropY = game.wouldDown(y=game.currentFigure.y)
+        dropY = max(dropY, 0)
         borderThickness = 4
         color = game.currentFigure.color
         img = game.currentFigure.image()
@@ -62,7 +66,7 @@ class Field:
                     pygame.draw.rect(
                         self.screen,
                         color,
-                        [self.xPosGame + (j+dropX) * self.zoom, 30 + (i+dropY) * self.zoom, self.zoom, self.zoom],
+                        [self.xPosGame + (j+game.currentFigure.x) * self.zoom, 30 + (i+dropY) * self.zoom, self.zoom, self.zoom],
                         borderThickness,
                     )
                 
@@ -83,13 +87,19 @@ class Field:
 
         score_font = pygame.font.SysFont("Calibri", 20, True, False)
         text_score = score_font.render("Score: %d" % (game.score) , True, primary_colors[self.fieldColors[2]])
-        self.screen.blit(text_score, [460, 200])
+        self.screen.blit(text_score, [self.xScore, 200])
         text_score = score_font.render("Level: %d" % (game.level) , True, primary_colors[self.fieldColors[2]])
-        self.screen.blit(text_score, [460, 240])
+        self.screen.blit(text_score, [self.xScore, 240])
+        text_killed_lines = score_font.render("Lines: %d" % game.killedLines, True, primary_colors[self.fieldColors[2]])
+        self.screen.blit(text_killed_lines, [self.xScore, 280])
 
         next_font = pygame.font.SysFont("Calibri", 12, True, False)
         text_next = next_font.render("Next Figure:", True, primary_colors[self.fieldColors[2]])
-        self.screen.blit(text_next, [30,30])
+        self.screen.blit(text_next, [self.xNextFigure,30])
+
+        change_font = pygame.font.SysFont("Calibri", 12, True, False)
+        text_change = change_font.render("Change Figure:", True, primary_colors[self.fieldColors[2]])
+        self.screen.blit(text_change, [self.xChangeFigure,30])
 
         pygame.display.flip()
         self.clock.tick(self.fps)

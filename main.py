@@ -6,12 +6,11 @@ Author: Hendrik Pieres
 
 '''
 done = False
-darkmode = True
 batchSize = 256
 
 height = 20
 width = 10
-game = Tetris(height, width, batchSize, darkmode)
+game = Tetris(height, width, batchSize)
 
 while not done:
     q = False

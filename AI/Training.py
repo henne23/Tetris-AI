@@ -16,7 +16,7 @@ class Training:
         self.game = game
         self.modelLearn = modelLearn
         self.modelDecide = modelDecide
-        self.final_epsilon = .001
+        self.final_epsilon = 0
         self.initial_epsilon = 1
         self.num_epochs = 5000
         self.loss = .0
@@ -44,26 +44,27 @@ class Training:
         return np.array([killedLines, holes, height, bumpiness])
 
     def getNextPosSteps(self, fig=None):
+        # get all possible next steps/states
         states = {}
         if fig is None:
             fig = self.game.currentFigure
         numRot = len(fig.Figures[fig.typ])
+        # for every possible rotation (depends on the tetromino)
         for r in range(numRot):
             length, start = fig.length(fig.typ, r)
             maxX = self.game.width - length + 1
             img = fig.image(fig.typ, r)
-            height, emptyRows = fig.height(img)
+            _, emptyRows = fig.height(img)
+            # for all possible x-positions
             for x in range(start, maxX+start):
-                dropX, dropY = self.game.wouldDown(x=x, img=img)
-                # otherwise no valid move
+                dropY = self.game.wouldDown(x=x, img=img)
+                # otherwise no valid move -> emptyRows because not every tetromino starts in the first row
                 if dropY >= -emptyRows:
                     field = np.copy(self.game.field.values)
-                    # Diese For-Schleife konnte noch nicht aufgelöst werden
                     for i in range(4):
                         for j in range(4):
-                            if i + dropY < self.game.height and j + dropX < self.game.width:
-                                field[i+dropY][j+dropX] += img[i][j]
-                    #field[dropY:dropY+4, dropX:dropX+4] += imgBottom
+                            if i + dropY < self.game.height and j + x < self.game.width:
+                                field[i+dropY][j+x] += img[i][j]
                     states[(x, r)] = self.getStateValue(field)
         return states
 
@@ -79,9 +80,11 @@ class Training:
                     if event.key == pygame.K_ESCAPE:
                         self.game.done = True
                         self.game.early = True
-                        return          
+                        return      
+        # always checks the hold figure too. If this is empty, the next figure is used    
         hold_fig = self.game.nextFigure if self.game.changeFigure is None else self.game.changeFigure
         nextPosSteps = self.getNextPosSteps()
+        # it is possible that no next steps are possible with the current or hold figure
         if nextPosSteps:
             nextActions, nextSteps = zip(*nextPosSteps.items())
             nextSteps = np.asarray(nextSteps)
@@ -89,23 +92,16 @@ class Training:
         if nextPosStepsHold:
             nextActionsHold, nextStepsHold = zip(*nextPosStepsHold.items())
             nextStepsHold = np.asarray(nextStepsHold)
-            # if only the hold figure works, switch and use this for the following calculations
-            if nextPosSteps is None:
-                nextPosSteps = nextPosStepsHold
-                nextPosStepsHold = None
-                self.game.change()
-        if not nextPosSteps and not nextPosStepsHold:
-            self.game.done = True
-            return
         # essential -> high probability for random actions at the beginning -> decreasing during the learning period
-        epsilon = self.final_epsilon + (max(self.num_epochs-self.game.totalMoves,0)*(self.initial_epsilon-self.final_epsilon)/self.num_epochs) if not self.game.loadModel else 0.001
+        # decision for random or best action based on the neural network
+        epsilon = self.final_epsilon + (max(self.num_epochs-self.game.totalMoves,0)*(self.initial_epsilon-self.final_epsilon)/self.num_epochs) if not self.game.loadModel else self.final_epsilon
         if np.random.rand() <= epsilon and self.game.train:
             index = np.random.randint(0,len(nextPosSteps)-1) if len(nextPosSteps) > 1 else 0
         else:
             q = self.modelLearn.predict(nextSteps, verbose=False)
             if nextPosStepsHold:
                 q_hold = self.modelLearn.predict(nextStepsHold, verbose=False)
-                if max(q) > max(q_hold):
+                if max(q) >= max(q_hold):
                     index = np.argmax(q)
                 else:
                     index = np.argmax(q_hold)
@@ -114,15 +110,16 @@ class Training:
                     nextSteps = nextStepsHold
             else:
                 index = np.argmax(q)
-            
         
         x, r = nextActions[index]
         nextState = nextSteps[index]
+        # perform the chosen action
         self.game.currentFigure.x = x
         self.game.currentFigure.rotation = r
         self.game.down()
 
         if self.game.train:
+            # get the reward and save it in memory to learn afterwards
             reward = self.getReward(nextState)
             if self.game.state == GAME_OVER:
                 self.exp.remember(self.state, reward, nextState, True)
@@ -130,6 +127,7 @@ class Training:
                 self.exp.remember(self.state, reward, nextState, False)
             self.state = nextState
 
+            # the training starts after 5000 epochs to fill the memory or if the training is based on existing weights
             if self.game.loadModel or self.game.totalMoves > self.num_epochs:
                 start = time.time()
                 inputs, outputs = self.exp.getTrainInstance(self.modelLearn, self.modelDecide, self.batchSize)
