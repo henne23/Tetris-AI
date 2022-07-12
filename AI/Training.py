@@ -26,11 +26,30 @@ class Training:
         maxMemory = batchSize * int(20000/batchSize)
         self.exp = Experience(self.modelDecide.input_shape[-1], self.modelDecide.output_shape[-1], maxMemory=maxMemory)
 
-    def getReward(self, nextState):
+    def getReward(self, currentState, nextState):
+        '''
         if self.game.done:
             return -1
         else:
             return 1 + nextState[0]**2 * self.game.width
+        '''
+
+        # no real difference compared to the reward function above (pretty fluctuating results)
+        reward = 0.0
+        # penalize if the game is over
+        if self.game.done:
+            return -1
+        # reward killed lines
+        elif nextState[0]:
+            return 1 + nextState[0]**2 * self.game.width
+        # different penalties if the amount of holes or height/bumpiness is increased compared to the previous state
+        if nextState[1] > currentState[1]:
+            reward -= 0.4
+        if nextState[2] > currentState[2]:
+            reward -= 0.2
+        if nextState[3] > currentState[3]:
+            reward -= 0.1
+        return reward
 
     def getHoles(self, field):
         b = (field!=0).argmax(axis=0)
@@ -124,7 +143,7 @@ class Training:
 
         if self.game.train:
             # get the reward and save it in memory to learn afterwards
-            reward = self.getReward(nextState)
+            reward = self.getReward(currentState = self.state, nextState=nextState)
             if self.game.state == GAME_OVER:
                 self.exp.remember(self.state, reward, nextState, True)
             else:

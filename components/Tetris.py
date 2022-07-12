@@ -2,6 +2,7 @@ from components.Figure import Figure
 from GUI.Field import Field
 from constants.GameStates import START, GAME_OVER
 import numpy as np
+import pandas as pd
 import os 
 import shutil
 import re
@@ -78,12 +79,15 @@ class Tetris:
         np.savetxt("Scores.txt", np.array(self.all_scores))
         plt.style.use("fivethirtyeight")
         plt.figure(figsize=(18,8))
-        top = [max(self.all_scores[i:i+self.top]) for i in range(len(self.all_scores)-self.top)]
-        plt.plot(top)
-        plt.title("Scores")
+        #top = [max(self.all_scores[i:i+self.top]) for i in range(len(self.all_scores)-self.top)]
+        window_size = 200
+        windows = pd.Series(self.all_scores).rolling(window_size)
+        res = windows.mean().dropna().tolist()
+        plt.plot(res)
+        plt.title("Scores (MA)")
         plt.xlabel("Epochs")
         plt.ylabel("Score")
-        plt.xticks(range(0,len(self.all_scores)-self.top,self.top))
+        plt.xticks(range(0,len(self.all_scores)-window_size,self.top))
         plt.savefig("Score by epoch.png")
         plt.show()
 
