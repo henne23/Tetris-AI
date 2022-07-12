@@ -23,11 +23,11 @@ class Training:
         self.state = np.zeros(4, dtype=int)
         self.updateModel = 50
         self.batchSize = batchSize
-        maxMemory = batchSize * int(20000/batchSize)
+        maxMemory = batchSize * int(30000/batchSize)
         self.exp = Experience(self.modelDecide.input_shape[-1], self.modelDecide.output_shape[-1], maxMemory=maxMemory)
 
     def getReward(self, currentState, nextState):
-        '''
+        
         if self.game.done:
             return -1
         else:
@@ -50,7 +50,8 @@ class Training:
         if nextState[3] > currentState[3]:
             reward -= 0.1
         return reward
-
+        '''
+        
     def getHoles(self, field):
         b = (field!=0).argmax(axis=0)
         return np.sum([field[x][i] < 1 for i in range(0, self.game.width) for x in range(b[i], self.game.height) if b[i] > 0])
@@ -119,11 +120,13 @@ class Training:
         # decision for random or best action based on the neural network
         epsilon = self.final_epsilon + (max(self.decay_epochs-self.game.epochs,0)*(self.initial_epsilon-self.final_epsilon)/self.decay_epochs) if not self.game.loadModel else self.final_epsilon
         if np.random.rand() <= epsilon and self.game.train:
-            index = np.random.randint(0,len(nextPosSteps)-1) if len(nextPosSteps) > 1 else 0
+            index = np.random.randint(0,len(nextPosSteps)) if len(nextPosSteps) > 1 else 0
         else:
-            q = self.modelDecide.predict(nextSteps, verbose=False)
+            #q = self.modelDecide.predict(nextSteps, verbose=False)
+            q = self.modelLearn.predict(nextSteps, verbose=False)
             if nextPosStepsHold:
-                q_hold = self.modelDecide.predict(nextStepsHold, verbose=False)
+                #q_hold = self.modelDecide.predict(nextStepsHold, verbose=False)
+                q_hold = self.modelLearn.predict(nextStepsHold, verbose=False)
                 if max(q) >= max(q_hold):
                     index = np.argmax(q)
                 else:
