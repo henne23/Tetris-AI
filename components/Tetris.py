@@ -328,7 +328,8 @@ class Tetris:
                 self.training.loss = 0.0
                 if self.score > self.highscore:
                     self.save_model(self.modelLearn)
-                    os.remove("Save/%dmodel_Tetris.h5" % self.highscore)
+                    if self.highscore > 0:
+                        os.remove("Save/%dmodel_Tetris.h5" % self.highscore)
                     self.highscore = self.score
                     shutil.copy("model_Tetris.h5", "Save/%dmodel_Tetris.h5" % self.highscore)
                 if self.epochs > self.max_epochs:
