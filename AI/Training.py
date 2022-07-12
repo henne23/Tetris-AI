@@ -23,8 +23,8 @@ class Training:
         self.state = np.zeros(4, dtype=int)
         self.updateModel = 50
         self.batchSize = batchSize
-        maxMemory = batchSize * int(30000/batchSize)
-        self.exp = Experience(self.modelDecide.input_shape[-1], self.modelDecide.output_shape[-1], maxMemory=maxMemory)
+        self.maxMemory = batchSize * int(30000/batchSize)
+        self.exp = Experience(self.modelDecide.input_shape[-1], self.modelDecide.output_shape[-1], maxMemory=self.maxMemory)
 
     def getReward(self, currentState, nextState):
         
@@ -122,10 +122,8 @@ class Training:
         if np.random.rand() <= epsilon and self.game.train:
             index = np.random.randint(0,len(nextPosSteps)) if len(nextPosSteps) > 1 else 0
         else:
-            #q = self.modelDecide.predict(nextSteps, verbose=False)
             q = self.modelLearn.predict(nextSteps, verbose=False)
             if nextPosStepsHold:
-                #q_hold = self.modelDecide.predict(nextStepsHold, verbose=False)
                 q_hold = self.modelLearn.predict(nextStepsHold, verbose=False)
                 if max(q) >= max(q_hold):
                     index = np.argmax(q)
@@ -153,14 +151,14 @@ class Training:
                 self.exp.remember(self.state, reward, nextState, False)
             self.state = nextState
 
-            # the training starts after 5000 epochs to fill the memory or if the training is based on existing weights
-            #if self.game.loadModel or self.game.totalMoves > self.num_epochs:
-            start = time.time()
-            inputs, outputs = self.exp.getTrainInstance(self.modelLearn, self.modelDecide, self.batchSize)
-            self.loss += self.modelLearn.train_on_batch(inputs, outputs)
-            self.game.trainTime += (time.time() - start)
-            
-            if self.game.totalMoves % self.updateModel == 0:
-                self.game.save_model(self.modelLearn)
-                self.modelDecide.load_weights("model_Tetris.h5")
+            # place many tetrominos without learning
+            if self.exp.currentIndex > self.maxMemory / 10 or self.game.loadModel:
+                start = time.time()
+                inputs, outputs = self.exp.getTrainInstance(self.modelLearn, self.modelDecide, self.batchSize)
+                self.loss += self.modelLearn.train_on_batch(inputs, outputs)
+                self.game.trainTime += (time.time() - start)
+                
+                if self.game.epochs % self.updateModel == 0:
+                    self.game.save_model(self.modelLearn)
+                    self.modelDecide.load_weights("model_Tetris.h5")
                 

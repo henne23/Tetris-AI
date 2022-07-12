@@ -32,7 +32,7 @@ class Tetris:
         Settings(self)
         self.max_epochs = 3000
         self.max_points = 500000
-        self.top = 100
+        self.top = 50
         self.all_scores = []
         self.all_holes = []
         self.totalTime = 0.0
@@ -52,8 +52,6 @@ class Tetris:
             except:
                 self.highscore = 0
             self.training = Training(self, self.modelLearn, self.modelDecide, batchSize)
-            #if self.train and not self.loadModel:
-             #   print("Place %d pieces first" % (self.training.num_epochs))
             try:
                 path = "C:/Users/hpieres/Documents/Git/Tetris-AI/EpochResults/"
                 self.epochs = max([int(re.sub(r'\D', "", x)) for x in os.listdir(path) if len(re.sub(r'\D',"",x))>0]) + 1
@@ -79,15 +77,16 @@ class Tetris:
         np.savetxt("Scores.txt", np.array(self.all_scores))
         plt.style.use("fivethirtyeight")
         plt.figure(figsize=(18,8))
-        #top = [max(self.all_scores[i:i+self.top]) for i in range(len(self.all_scores)-self.top)]
-        window_size = 200
-        windows = pd.Series(self.all_scores).rolling(window_size)
-        res = windows.mean().dropna().tolist()
+        res = [max(self.all_scores[i:i+self.top]) for i in range(len(self.all_scores)-self.top)]
+        #window_size = 200
+        #windows = pd.Series(self.all_scores).rolling(window_size)
+        #res = windows.mean().dropna().tolist()
         plt.plot(res)
         plt.title("Scores (MA)")
         plt.xlabel("Epochs")
         plt.ylabel("Score")
-        plt.xticks(range(0,len(self.all_scores)-window_size,self.top))
+        #plt.xticks(range(0,len(self.all_scores)-window_size,self.top))
+        plt.xticks(range(0, len(self.all_scores)-self.top, self.top))
         plt.savefig("Score by epoch.png")
         plt.show()
 
@@ -320,7 +319,7 @@ class Tetris:
                 lastFrame = time.time()
                 update += duration
         if not self.manual:
-            if self.train:# and (self.loadModel or self.totalMoves > self.training.num_epochs):
+            if self.train and (self.loadModel or self.training.exp.currentIndex > self.training.maxMemory / 10):
                 # Statistics
                 gameTime = time.time() - self.startTime
                 self.totalTime += gameTime

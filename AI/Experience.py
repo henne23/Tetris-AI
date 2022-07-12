@@ -26,8 +26,8 @@ class Experience:
         self.currentIndex += 1
 
     def getTrainInstance(self, modelLearn, modelDecide, batchSize):
+        # maybe include prioritized replay in the next update
         minLength = min(self.currentIndex, batchSize)
-        
         elements = np.random.randint(0, min(self.currentIndex, self.maxMemory), size=minLength)
         outputs = np.zeros((self.inputSize, self.outputSize))
         rewards = self.rewardMemory[elements]
@@ -35,9 +35,9 @@ class Experience:
         states = self.stateMemory[elements]
         nextStates = self.nextstateMemory[elements]
 
-        outputs = modelLearn.predict_on_batch(states)
-        #newOutputs = np.max(modelDecide.predict_on_batch(nextStates), axis = 1)
-        newOutputs = np.max(modelLearn.predict_on_batch(nextStates), axis=1)
+        outputs = modelLearn.predict(states)
+        newOutputs = np.max(modelDecide.predict(nextStates), axis = 1)
+        #newOutputs = np.max(modelLearn.predict_on_batch(nextStates), axis=1)
 
         for index, _ in enumerate(rewards):
             if gameOvers[index]:

@@ -22,8 +22,8 @@ class Field:
             self.clock = pygame.time.Clock()
             self.zoom = 30
             self.xPosGame = (screen_width-(self.zoom*width)) / 2
-            self.xNextFigure = 30
-            self.xChangeFigure = 490
+            self.xNextFigure = (int(screen_width*.25) - self.zoom*2) / 2
+            self.xChangeFigure = int(screen_width*.75) + (int(screen_width*.25) - self.zoom*2) / 2
             self.xScore = 460
             if manual:
                 self.fps = 30
