@@ -83,7 +83,7 @@ it happened that subsequent games ended after only a few tetrominos.
 The following diagram shows the best score over a window of 50 games (this training does not include the best results what can be found in the Save-folder).
 
 <p align="center">
-    <img src ="Score by epoch.png" width = 600><br/>
+    <img src ="Score by epochs.png" width = 600><br/>
     <i> Score overview </i>
 </p>
 
