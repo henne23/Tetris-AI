@@ -23,7 +23,7 @@ class Settings():
         self.root.mainloop()
 
     def on_closing(self, event=None):
-        #self.get_settings()
+        # does not work the way it is supposed to do
         self.root.destroy()
         sys.exit(0)
 

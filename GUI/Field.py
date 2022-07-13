@@ -74,7 +74,7 @@ class Field:
         pygame.draw.rect(self.screen, primary_colors[self.field_colors[1]], [self.x_change_figure, 60, int(self.zoom/2)*4, int(self.zoom/2)*4], 1)
 
         self.draw_figure(game.current_figure, self.x_pos_game, 30, self.zoom, game.current_figure.x, game.current_figure.y)
-        self.draw_figure(game.changeFigure, self.x_change_figure, 60, int(self.zoom/2))
+        self.draw_figure(game.change_figure, self.x_change_figure, 60, int(self.zoom/2))
         self.draw_figure(game.next_figure, self.x_next_figure, 60, int(self.zoom/2))
 
         gameover_font = pygame.font.SysFont("Calibri", 65, True, False)

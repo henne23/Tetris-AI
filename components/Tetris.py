@@ -38,7 +38,7 @@ class Tetris:
         self.total_time = 0.0
         if not self.manual:
             from AI.Training import Training
-            self.load_model = False
+            self.load_model = True
             if self.train:
                 self.model_learn = self.create_model()
             else:
@@ -323,28 +323,29 @@ class Tetris:
                 last_frame = time.time()
                 update += duration
         if not self.manual:
-            if self.train and (self.load_model or self.training.exp.current_index > self.training.max_memory / 10):
-                # Statistics
-                game_time = time.time() - self.start_time
-                self.total_time += game_time
-                holes = self.training.get_holes(self.field.values)
-                self.all_holes.append(holes)
-                print("Epoch: %5d\tLevel: %2d\tScore: %7d\tPieces: %5d\tLines: %d\tTotal Moves: %d\tTime/Total Time: %.2f / %.2f" % (self.epochs, self.level, self.score, self.pieces, self.killed_lines, self.total_moves, game_time, self.total_time))
-                self.epochs += 1
-                self.all_scores.append(self.score)
-                self.training.loss = 0.0
-                if self.score > self.highscore:
-                    self.save_model(self.modelLearn)
-                    if self.highscore > 0:
-                        os.remove("Save/%dmodel_Tetris.h5" % self.highscore)
-                    self.highscore = self.score
-                    shutil.copy("model_Tetris.h5", "Save/%dmodel_Tetris.h5" % self.highscore)
-                if self.epochs > self.max_epochs:
-                    self.plot_results()
-                    self.save_model(self.model_learn)
-                    self.early = True
+            game_time = time.time() - self.start_time
+            self.total_time += game_time
+            if self.train:
+                if self.load_model or self.training.exp.current_index > self.training.max_memory / 10:
+                    # Statistics
+                    holes = self.training.get_holes(self.field.values)
+                    self.all_holes.append(holes)
+                    print("Epoch: %5d\tLevel: %2d\tScore: %7d\tPieces: %5d\tLines: %d\tTotal Moves: %d\tTime/Total Time: %.2f / %.2f" % (self.epochs, self.level, self.score, self.pieces, self.killed_lines, self.total_moves, game_time, self.total_time))
+                    self.epochs += 1
+                    self.all_scores.append(self.score)
+                    self.training.loss = 0.0
+                    if self.score > self.highscore:
+                        self.save_model(self.model_learn)
+                        if self.highscore > 0:
+                            os.remove("Save/%dmodel_Tetris.h5" % self.highscore)
+                        self.highscore = self.score
+                        shutil.copy("model_Tetris.h5", "Save/%dmodel_Tetris.h5" % self.highscore)
+                    if self.epochs > self.max_epochs:
+                        self.plot_results()
+                        self.save_model(self.model_learn)
+                        self.early = True
             else:
-                print("Level: %3d\tScore: %7d\tPieces: %5d\tLines: %d" % (self.level, self.score, self.pieces, self.killed_lines))
+                print("Level: %3d\tScore: %7d\tPieces: %5d\tLines: %d\tTime / Total Time: %.2f / %.2f" % (self.level, self.score, self.pieces, self.killed_lines, game_time, self.total_time))
                     
     def save_model(self, model, first=False):
         # serialize model to JSON

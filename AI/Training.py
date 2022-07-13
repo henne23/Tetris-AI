@@ -21,18 +21,19 @@ class Training:
         self.decay_epochs = int(game.max_epochs*.7)
         self.loss = .0
         self.state = np.zeros(4, dtype=int)
-        self.update_model = 50
+        self.update_model = 10
         self.batch_size = batch_size
         self.max_memory = batch_size * int(30000/batch_size)
         self.exp = Experience(self.model_decide.input_shape[-1], self.model_decide.output_shape[-1], max_memory=self.max_memory)
 
-    def getReward(self, current_state, next_state):
-        
+    def get_reward(self, current_state, next_state):
+        return 1 + next_state[0]**2 * self.game.width
+        '''
         if self.game.done:
             return -1
         else:
             return 1 + next_state[0]**2 * self.game.width
-        '''
+        
 
         # no real difference compared to the reward function above (pretty fluctuating results)
         reward = 0.0

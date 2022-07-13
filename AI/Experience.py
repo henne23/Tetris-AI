@@ -10,7 +10,7 @@ class Experience:
         self.max_memory = max_memory
         self.state_memory = np.zeros((self.max_memory, input_size), dtype=int)
         self.reward_memory = np.zeros((self.max_memory))
-        self.nextstate_memory = np.zeros((self.max_memory, input_size))
+        self.next_state_memory = np.zeros((self.max_memory, input_size))
         self.gameover_memory = np.zeros(self.max_memory, dtype=bool)
         self.discount = discount
         self.input_size = input_size
@@ -21,7 +21,7 @@ class Experience:
         index_mod = self.current_index % self.max_memory
         self.state_memory[index_mod] = state
         self.reward_memory[index_mod] = reward
-        self.nextstate_memory[index_mod] = next_state
+        self.next_state_memory[index_mod] = next_state
         self.gameover_memory[index_mod] = gameover
         self.current_index += 1
 
