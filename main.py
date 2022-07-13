@@ -6,11 +6,11 @@ Author: Hendrik Pieres
 
 '''
 done = False
-batchSize = 256
+batch_size = 256
 
 height = 20
 width = 10
-game = Tetris(height, width, batchSize)
+game = Tetris(height, width, batch_size)
 
 while not done:
     q = False
@@ -26,4 +26,4 @@ while not done:
                         q = True
     if game.early:
         done = True
-game.field.gameOver()
+game.field.game_over()

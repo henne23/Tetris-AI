@@ -6,42 +6,42 @@ Author: Hendrik Pieres
 '''
 
 class Experience:
-    def __init__(self, inputSize, outputSize, maxMemory = 30000, discount = .99):
-        self.maxMemory = maxMemory
-        self.stateMemory = np.zeros((self.maxMemory, inputSize), dtype=int)
-        self.rewardMemory = np.zeros((self.maxMemory))
-        self.nextstateMemory = np.zeros((self.maxMemory, inputSize))
-        self.gameOverMemory = np.zeros(self.maxMemory, dtype=bool)
+    def __init__(self, input_size, output_size, max_memory = 30000, discount = .99):
+        self.max_memory = max_memory
+        self.state_memory = np.zeros((self.max_memory, input_size), dtype=int)
+        self.reward_memory = np.zeros((self.max_memory))
+        self.nextstate_memory = np.zeros((self.max_memory, input_size))
+        self.gameover_memory = np.zeros(self.max_memory, dtype=bool)
         self.discount = discount
-        self.inputSize = inputSize
-        self.outputSize = outputSize
-        self.currentIndex = 0
+        self.input_size = input_size
+        self.output_size = output_size
+        self.current_index = 0
 
-    def remember(self, state, reward, nextState, game_over):
-        indexMod = self.currentIndex % self.maxMemory
-        self.stateMemory[indexMod] = state
-        self.rewardMemory[indexMod] = reward
-        self.nextstateMemory[indexMod] = nextState
-        self.gameOverMemory[indexMod] = game_over
-        self.currentIndex += 1
+    def remember(self, state, reward, next_state, gameover):
+        index_mod = self.current_index % self.max_memory
+        self.state_memory[index_mod] = state
+        self.reward_memory[index_mod] = reward
+        self.nextstate_memory[index_mod] = next_state
+        self.gameover_memory[index_mod] = gameover
+        self.current_index += 1
 
-    def getTrainInstance(self, modelLearn, modelDecide, batchSize):
+    def get_train_instance(self, model_learn, model_decide, batch_size):
         # maybe include prioritized replay in the next update
-        minLength = min(self.currentIndex, batchSize)
-        elements = np.random.randint(0, min(self.currentIndex, self.maxMemory), size=minLength)
-        outputs = np.zeros((self.inputSize, self.outputSize))
-        rewards = self.rewardMemory[elements]
-        gameOvers = self.gameOverMemory[elements]
-        states = self.stateMemory[elements]
-        nextStates = self.nextstateMemory[elements]
+        min_length = min(self.current_index, batch_size)
+        elements = np.random.randint(0, min(self.current_index, self.max_memory), size=min_length)
+        outputs = np.zeros((self.input_size, self.output_size))
+        rewards = self.reward_memory[elements]
+        gameovers = self.gameover_memory[elements]
+        states = self.state_memory[elements]
+        next_states = self.next_state_memory[elements]
 
-        outputs = modelLearn.predict(states)
-        newOutputs = np.max(modelDecide.predict(nextStates), axis = 1)
+        outputs = model_learn.predict(states)
+        new_outputs = np.max(model_decide.predict(next_states), axis = 1)
         #newOutputs = np.max(modelLearn.predict_on_batch(nextStates), axis=1)
 
         for index, _ in enumerate(rewards):
-            if gameOvers[index]:
+            if gameovers[index]:
                 outputs[index] = rewards[index]
             else:
-                outputs[index] = rewards[index] + self.discount * newOutputs[index]
+                outputs[index] = rewards[index] + self.discount * new_outputs[index]
         return states, outputs

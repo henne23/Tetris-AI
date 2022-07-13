@@ -21,30 +21,30 @@ class Field:
             pygame.display.set_caption("Tetris-AI")
             self.clock = pygame.time.Clock()
             self.zoom = 30
-            self.xPosGame = (screen_width-(self.zoom*width)) / 2
-            self.xNextFigure = (int(screen_width*.25) - self.zoom*2) / 2
-            self.xChangeFigure = int(screen_width*.75) + (int(screen_width*.25) - self.zoom*2) / 2
-            self.xScore = 460
+            self.x_pos_game = (screen_width-(self.zoom*width)) / 2
+            self.x_next_figure = (int(screen_width*.25) - self.zoom*2) / 2
+            self.x_change_figure = int(screen_width*.75) + (int(screen_width*.25) - self.zoom*2) / 2
+            self.x_score = 460
             if manual:
                 self.fps = 30
             else:
                 self.fps = 0
             if not darkmode:
-                self.fieldColors = ["WHITE", "GRAY", "BLACK"]
+                self.field_colors = ["WHITE", "GRAY", "BLACK"]
             else:
-                self.fieldColors = ["BLACK", "WHITE", "WHITE"]
+                self.field_colors = ["BLACK", "WHITE", "WHITE"]
         self.colors = np.zeros((height, width), dtype=int)
         self.values = np.zeros((height, width), dtype=int)
 
-    def gameOver(self):
+    def game_over(self):
         pygame.quit()
 
     def update(self, game):
-        self.screen.fill(color=primary_colors[self.fieldColors[0]])
+        self.screen.fill(color=primary_colors[self.field_colors[0]])
         for i in range(game.height):
             for j in range(game.width):
                 if self.values[i][j] == 0:
-                    color = primary_colors[self.fieldColors[1]]
+                    color = primary_colors[self.field_colors[1]]
                     just_border = 1
                 else:
                     color = brick_colors[self.colors[i][j]]
@@ -52,59 +52,59 @@ class Field:
                 pygame.draw.rect(
                     self.screen,
                     color,
-                    [self.xPosGame + j * self.zoom, 30 + i * self.zoom, self.zoom, self.zoom],
+                    [self.x_pos_game + j * self.zoom, 30 + i * self.zoom, self.zoom, self.zoom],
                     just_border,
                 )
-        dropY = game.wouldDown(y=game.currentFigure.y)
-        dropY = max(dropY, 0)
-        borderThickness = 4
-        color = game.currentFigure.color
-        img = game.currentFigure.image()
+        drop_y = game.would_down(y=game.current_figure.y)
+        drop_y = max(drop_y, 0)
+        border_thickness = 4
+        color = game.current_figure.color
+        img = game.current_figure.image()
         for i in range(4):
             for j in range(4):
                 if img[i][j]:
                     pygame.draw.rect(
                         self.screen,
                         color,
-                        [self.xPosGame + (j+game.currentFigure.x) * self.zoom, 30 + (i+dropY) * self.zoom, self.zoom, self.zoom],
-                        borderThickness,
+                        [self.x_pos_game + (j+game.current_figure.x) * self.zoom, 30 + (i+drop_y) * self.zoom, self.zoom, self.zoom],
+                        border_thickness,
                     )
                 
-        pygame.draw.rect(self.screen, primary_colors[self.fieldColors[1]], [self.xNextFigure, 60, int(self.zoom/2)*4, int(self.zoom/2)*4], 1)
-        pygame.draw.rect(self.screen, primary_colors[self.fieldColors[1]], [self.xChangeFigure, 60, int(self.zoom/2)*4, int(self.zoom/2)*4], 1)
+        pygame.draw.rect(self.screen, primary_colors[self.field_colors[1]], [self.x_next_figure, 60, int(self.zoom/2)*4, int(self.zoom/2)*4], 1)
+        pygame.draw.rect(self.screen, primary_colors[self.field_colors[1]], [self.x_change_figure, 60, int(self.zoom/2)*4, int(self.zoom/2)*4], 1)
 
-        self.drawFigure(game.currentFigure, self.xPosGame, 30, self.zoom, game.currentFigure.x, game.currentFigure.y)
-        self.drawFigure(game.changeFigure, self.xChangeFigure, 60, int(self.zoom/2))
-        self.drawFigure(game.nextFigure, self.xNextFigure, 60, int(self.zoom/2))
+        self.draw_figure(game.current_figure, self.x_pos_game, 30, self.zoom, game.current_figure.x, game.current_figure.y)
+        self.draw_figure(game.changeFigure, self.x_change_figure, 60, int(self.zoom/2))
+        self.draw_figure(game.next_figure, self.x_next_figure, 60, int(self.zoom/2))
 
         gameover_font = pygame.font.SysFont("Calibri", 65, True, False)
-        text_gameover = gameover_font.render("Game Over!", True, primary_colors[self.fieldColors[2]])
-        text_2 = gameover_font.render("Press ESC or Enter.", True, primary_colors[self.fieldColors[2]])
+        text_gameover = gameover_font.render("Game Over!", True, primary_colors[self.field_colors[2]])
+        text_2 = gameover_font.render("Press ESC or Enter.", True, primary_colors[self.field_colors[2]])
 
         if game.state == GAME_OVER and game.manual:
             self.screen.blit(text_gameover, [30, 250])
             self.screen.blit(text_2, [30, 350])
 
         score_font = pygame.font.SysFont("Calibri", 20, True, False)
-        text_score = score_font.render("Score: %d" % (game.score) , True, primary_colors[self.fieldColors[2]])
-        self.screen.blit(text_score, [self.xScore, 200])
-        text_score = score_font.render("Level: %d" % (game.level) , True, primary_colors[self.fieldColors[2]])
-        self.screen.blit(text_score, [self.xScore, 240])
-        text_killed_lines = score_font.render("Lines: %d" % game.killedLines, True, primary_colors[self.fieldColors[2]])
-        self.screen.blit(text_killed_lines, [self.xScore, 280])
+        text_score = score_font.render("Score: %d" % (game.score) , True, primary_colors[self.field_colors[2]])
+        self.screen.blit(text_score, [self.x_score, 200])
+        text_score = score_font.render("Level: %d" % (game.level) , True, primary_colors[self.field_colors[2]])
+        self.screen.blit(text_score, [self.x_score, 240])
+        text_killed_lines = score_font.render("Lines: %d" % game.killed_lines, True, primary_colors[self.field_colors[2]])
+        self.screen.blit(text_killed_lines, [self.x_score, 280])
 
         next_font = pygame.font.SysFont("Calibri", 12, True, False)
-        text_next = next_font.render("Next Figure:", True, primary_colors[self.fieldColors[2]])
-        self.screen.blit(text_next, [self.xNextFigure,30])
+        text_next = next_font.render("Next Figure:", True, primary_colors[self.field_colors[2]])
+        self.screen.blit(text_next, [self.x_next_figure,30])
 
         change_font = pygame.font.SysFont("Calibri", 12, True, False)
-        text_change = change_font.render("Change Figure:", True, primary_colors[self.fieldColors[2]])
-        self.screen.blit(text_change, [self.xChangeFigure,30])
+        text_change = change_font.render("Change Figure:", True, primary_colors[self.field_colors[2]])
+        self.screen.blit(text_change, [self.x_change_figure,30])
 
         pygame.display.flip()
         self.clock.tick(self.fps)
 
-    def drawFigure(self, fig, x, y, zoom, gameX = 0, gameY = 0):
+    def draw_figure(self, fig, x, y, zoom, game_x = 0, game_y = 0):
         if fig is not None:
             img = fig.image()
             for i in range(4):
@@ -114,8 +114,8 @@ class Field:
                             self.screen,
                             fig.color,
                             [
-                                x + (j + gameX) * zoom,
-                                y + (i + gameY) * zoom,
+                                x + (j + game_x) * zoom,
+                                y + (i + game_y) * zoom,
                                 zoom,
                                 zoom,
                             ],

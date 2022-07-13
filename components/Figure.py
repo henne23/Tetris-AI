@@ -61,8 +61,8 @@ class Figure:
         fig = np.sum(img, axis=1)
         height = np.sum([x > 0 for x in fig])
         # Returns how many rows are empty from above
-        emptyRows = (np.sum(img, axis=1)!=0).argmax()
-        return height, emptyRows
+        empty_rows = (np.sum(img, axis=1)!=0).argmax()
+        return height, empty_rows
 
     def rotate(self):
         # The conditions prevent a tetromino from getting outside the game borders by rotation
