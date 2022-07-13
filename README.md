@@ -52,6 +52,16 @@ function.
 - loss = MSE
 - optimizer = Adam
 
+# Points
+
+The more lines are cleared at once the more points are achieved. Afterwards
+the achieved points are multiplied with the level (this only makes sense in the
+manual mode as the speed increases with the level). The level increases after every
+10 cleared lines.
+
+These are the points:
+[1: 40, 2: 100, 3: 300, 4: 1200]
+
 ## Requirements
 
 Python (3.7)\
