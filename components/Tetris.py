@@ -52,6 +52,8 @@ class Tetris:
             except:
                 self.highscore = 0
             self.training = Training(self, self.modelLearn, self.modelDecide, batchSize)
+            if self.train:
+                print("Place %d tetrominos first" % (self.training.maxMemory / 10))
             try:
                 path = "C:/Users/hpieres/Documents/Git/Tetris-AI/EpochResults/"
                 self.epochs = max([int(re.sub(r'\D', "", x)) for x in os.listdir(path) if len(re.sub(r'\D',"",x))>0]) + 1
@@ -305,12 +307,14 @@ class Tetris:
                     update = 0.0
                 self.control()
             elif self.training is not None:
+                '''
                 if self.score > self.max_points:
                     self.done = True
                 else:
-                    self.training.train()
-                    self.pieces += 1
-                    self.totalMoves += 1
+                '''
+                self.training.train()
+                self.pieces += 1
+                self.totalMoves += 1
 
             if self.graphics:
                 self.field.update(self)
