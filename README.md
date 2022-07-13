@@ -22,7 +22,7 @@ Double Q-Learning algorithm.
 
 ## AI Procedure
 
-# Training
+### Training
 
 The agent starts to place one tenth of the replay memory size of
 tetrominos, evaluates the states and saves them in the Experience
@@ -36,14 +36,14 @@ Given one tetromino every possible action with every possible
 rotation is checked and evaluated. The model selects the action
 with the best state.
 
-# State
+### State
 
 - cleared lines
 - holes
 - total height
 - total bumpiness (sum of differences between the current and the next column)
 
-# The network
+### The network
 
 The neural network uses two hidden layers with 64 neurons each. ReLU is used as the
 activation function for the input and hidden layers. The output layer uses a linear
@@ -52,7 +52,7 @@ function.
 - loss = MSE
 - optimizer = Adam
 
-# Points
+### Points
 
 The more lines are cleared at once the more points are achieved. Afterwards
 the achieved points are multiplied with the level (this only makes sense in the
