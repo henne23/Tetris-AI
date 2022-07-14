@@ -64,7 +64,7 @@ class Tetris:
         # Initialize variables for one game
         self.start_time = time.time()
         self.train_time = 0.0
-        self.field = Field(self.height, self.width, self.graphics, self.darkmode, self.manual)
+        self.field = Field(self.height, self.width, self.graphics, self.darkmode)
         self.done, self.early, self.pressing_down, self.pressing_left, self.pressing_right, self.switch = False, False, False, False, False, False
         self.level = 1
         self.points = [40, 100, 300, 1200]
@@ -257,28 +257,37 @@ class Tetris:
             for j in range(4):
                 if fig[i][j]:
                     self.field.values[i + self.current_figure.y][j + self.current_figure.x] = 1
-                    self.field.colors[i + self.current_figure.y][j + self.current_figure.x] = (self.current_figure.typ + 1)
-        self.break_lines()
+                    if self.graphics:
+                        self.field.colors[i + self.current_figure.y][j + self.current_figure.x] = (self.current_figure.typ + 1)
+        self.break_lines(live=True)
         self.current_figure, self.next_figure = self.create_new_figure()
 
-    def break_lines(self, field=None):
+    def get_new_field(self, field, index):
+        new_line = np.zeros((1, self.width), dtype=int)
+        keep_field_above = field[:index]
+        keep_field_below = field[index+1:]
+        return np.concatenate((new_line, keep_field_above, keep_field_below))
+
+    def break_lines(self, field=None, live=False):
         score_update = False
         # function is called by training.getStateValue() with a field copy to evaluate every possible move
         if field is None:
-            # Call by Reference
             field = self.field.values
-            field_col = self.field.colors
+            if self.graphics:
+                field_col = self.field.colors
             score_update = True
         lines = np.sum(field, axis=1)
         killed_lines = np.sum([x >= self.width for x in lines])
         if killed_lines > 0:
-            for index, val in enumerate(lines):
-                if val > 9:
-                    for i in range(index, 0, -1):
-                        for j in range(self.width):
-                            field[i][j] = field[i - 1][j]
-                            if score_update:
-                                field_col[i][j] = field_col[i - 1][j]
+            indices = [index for index, val in enumerate(lines) if val > 9]
+            for index in indices:
+                # not a good solution (it's not Call by Reference anymore if the value is passed and returned to/by another function)
+                if not live:
+                    field = self.get_new_field(field, index)
+                else:
+                    self.field.values = self.get_new_field(field, index)
+                if self.graphics and score_update:
+                    self.field.colors = self.get_new_field(field_col, index)
             # score_update checks whether this function is used during a real game or AI learning
             if score_update:
                 self.score += self.points[killed_lines - 1] * self.level

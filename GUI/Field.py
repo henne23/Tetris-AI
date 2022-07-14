@@ -12,7 +12,7 @@ Basic game engine by TheMorpheus407
 '''
 
 class Field:
-    def __init__(self, height, width, graphics, darkmode, manual):
+    def __init__(self, height, width, graphics, darkmode):
         if graphics:
             pygame.init()
             screen_width = 600
@@ -25,15 +25,9 @@ class Field:
             self.x_next_figure = (int(screen_width*.25) - self.zoom*2) / 2
             self.x_change_figure = int(screen_width*.75) + (int(screen_width*.25) - self.zoom*2) / 2
             self.x_score = 460
-            if manual:
-                self.fps = 30
-            else:
-                self.fps = 0
-            if not darkmode:
-                self.field_colors = ["WHITE", "GRAY", "BLACK"]
-            else:
-                self.field_colors = ["BLACK", "WHITE", "WHITE"]
-        self.colors = np.zeros((height, width), dtype=int)
+            self.fps = 30
+            self.field_colors = ["WHITE", "GRAY", "BLACK"] if not darkmode else ["BLACK", "WHITE", "WHITE"]
+            self.colors = np.zeros((height, width), dtype=int)
         self.values = np.zeros((height, width), dtype=int)
 
     def game_over(self):

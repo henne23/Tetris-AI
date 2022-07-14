@@ -22,7 +22,7 @@ Double Q-Learning algorithm.
 
 ## AI Procedure
 
-# Training
+### Training
 
 The agent starts to place one tenth of the replay memory size of
 tetrominos, evaluates the states and saves them in the Experience
@@ -34,16 +34,16 @@ parameter that continuously decreases during training.
 
 Given one tetromino every possible action with every possible 
 rotation is checked and evaluated. The model selects the action
-with the best state.
+with the best state reward.
 
-# State
+### State
 
 - cleared lines
 - holes
 - total height
 - total bumpiness (sum of differences between the current and the next column)
 
-# The network
+### The network
 
 The neural network uses two hidden layers with 64 neurons each. ReLU is used as the
 activation function for the input and hidden layers. The output layer uses a linear
@@ -51,6 +51,16 @@ function.
 
 - loss = MSE
 - optimizer = Adam
+
+### Points
+
+The more lines are cleared at once the more points are achieved. Afterwards the achieved points
+are multiplied with the level (this only makes sense in the manual mode as the speed
+increases with the level). The level itself increases after every 10 cleared lines.
+
+These are the points:
+
+[1: 40, 2: 100, 3: 300, 4: 1200]
 
 ## Requirements
 
@@ -67,13 +77,13 @@ pandas (1.3.5)
 ## Misc
 
 It was noticeable that the results varied greatly. 
-Even still very successful games with several hundred cleared lines, 
+Even after very successful games with several hundred cleared lines, 
 it happened that subsequent games ended after only a few tetrominos.
 
 The following diagram shows the best score over a window of 50 games (this training does not include the best results what can be found in the Save-folder).
 
 <p align="center">
-    <img src ="Score by epoch.png" width = 600><br/>
+    <img src ="Score over epochs.png"><br/>
     <i> Score overview </i>
 </p>
 

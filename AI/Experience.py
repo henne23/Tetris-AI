@@ -37,7 +37,6 @@ class Experience:
 
         outputs = model_learn.predict(states)
         new_outputs = np.max(model_decide.predict(next_states), axis = 1)
-        #newOutputs = np.max(modelLearn.predict_on_batch(nextStates), axis=1)
 
         for index, _ in enumerate(rewards):
             if gameovers[index]:
