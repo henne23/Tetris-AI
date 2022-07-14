@@ -34,7 +34,7 @@ parameter that continuously decreases during training.
 
 Given one tetromino every possible action with every possible 
 rotation is checked and evaluated. The model selects the action
-with the best state.
+with the best state reward.
 
 ### State
 
@@ -77,7 +77,7 @@ pandas (1.3.5)
 ## Misc
 
 It was noticeable that the results varied greatly. 
-Even still very successful games with several hundred cleared lines, 
+Even after very successful games with several hundred cleared lines, 
 it happened that subsequent games ended after only a few tetrominos.
 
 The following diagram shows the best score over a window of 50 games (this training does not include the best results what can be found in the Save-folder).

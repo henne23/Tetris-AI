@@ -52,20 +52,26 @@ class Training:
             reward -= 0.1
         return reward
         '''
-        
-    def get_holes(self, field):
-        b = (field!=0).argmax(axis=0)
+    
+    def get_height(self, column_height):
+        return np.sum(column_height)
+
+    def get_bumpiness(self, column_height):
+        return np.sum(np.abs(column_height[:-1]-column_height[1:]))
+
+    def get_holes(self, field, b):
         return np.sum([field[x][i] < 1 for i in range(0, self.game.width) for x in range(b[i], self.game.height) if b[i] > 0])
 
     def get_state_value(self, field):
-        field_copy, killed_lines = self.game.break_lines(np.copy(field))
+        field_copy = self.game.get_field_copy()
+        killed_lines = self.game.break_lines(field_copy)
         b = (field_copy!=0).argmax(axis=0)
         column_height = np.where(b>0,self.game.height-b,0)
-        height = np.sum(column_height)
+        height = self.get_height(column_height)
         # To calculate the holes and bumpiness, you need to determine the first position with a figure for each column
         # For each column, starting from the first figure, it is checked whether zero values occur. All columns add up to the resulting holes.
-        holes = self.get_holes(field=field_copy)
-        bumpiness = np.sum(np.abs(column_height[:-1]-column_height[1:]))
+        holes = self.get_holes(field=field_copy, b=b)
+        bumpiness = self.get_bumpiness(column_height)
         return np.array([killed_lines, holes, height, bumpiness])
 
     def get_next_pos_steps(self, fig=None):
