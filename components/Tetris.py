@@ -239,6 +239,7 @@ class Tetris:
         # Checks for intersection after every move (downwards or sidewards)
         fig = self.current_figure if (fig is None) else fig
         img = fig.image()
+        intersection = False
         for i in range(4):
             for j in range(4):
                 if img[i][j]:
@@ -247,7 +248,7 @@ class Tetris:
                         or self.field.values[i + fig.y][j + fig.x] > 0  # figure intersection
                     ):
                         return True
-        return False
+        return intersection
 
     def freeze(self):
         # Updates the field values after intersection
@@ -259,9 +260,6 @@ class Tetris:
                     self.field.colors[i + self.current_figure.y][j + self.current_figure.x] = (self.current_figure.typ + 1)
         self.break_lines()
         self.current_figure, self.next_figure = self.create_new_figure()
-
-    def get_field_copy(self):
-        return np.copy(self.field.values)
 
     def break_lines(self, field=None):
         score_update = False
@@ -277,10 +275,9 @@ class Tetris:
             for index, val in enumerate(lines):
                 if val > 9:
                     for i in range(index, 0, -1):
-                        # kann hier direkt die ganze Zeile ersetzt werden?
                         for j in range(self.width):
                             field[i][j] = field[i - 1][j]
-                            if self.graphics:
+                            if score_update:
                                 field_col[i][j] = field_col[i - 1][j]
             # score_update checks whether this function is used during a real game or AI learning
             if score_update:
@@ -288,7 +285,7 @@ class Tetris:
                 self.killed_lines += killed_lines
                 self.level = int(self.killed_lines/10) + 1
         if not score_update:
-            return killed_lines
+            return field, killed_lines
 
     def stop(self):
         q = False
@@ -331,8 +328,7 @@ class Tetris:
             if self.train:
                 if self.load_model or self.training.exp.current_index > self.training.max_memory / 10:
                     # Statistics
-                    b = (self.field.values!=0).argmax(axis=0)
-                    holes = self.training.get_holes(self.field.values, b)
+                    holes = self.training.get_holes(self.field.values)
                     self.all_holes.append(holes)
                     print("Epoch: %5d\tLevel: %2d\tScore: %7d\tPieces: %5d\tLines: %d\tTotal Moves: %d\tTime/Total Time: %.2f / %.2f" % (self.epochs, self.level, self.score, self.pieces, self.killed_lines, self.total_moves, game_time, self.total_time))
                     self.epochs += 1
