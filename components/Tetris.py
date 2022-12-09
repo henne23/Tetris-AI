@@ -278,6 +278,8 @@ class Tetris:
             score_update = True
         lines = np.sum(field, axis=1)
         killed_lines = np.sum([x >= self.width for x in lines])
+        if killed_lines > 1:
+            print("Stop")
         if killed_lines > 0:
             indices = [index for index, val in enumerate(lines) if val > 9]
             for index in indices:
@@ -285,9 +287,9 @@ class Tetris:
                 if not live:
                     field = self.get_new_field(field, index)
                 else:
-                    self.field.values = self.get_new_field(field, index)
+                    self.field.values = self.get_new_field(self.field.values, index)
                 if self.graphics and score_update:
-                    self.field.colors = self.get_new_field(field_col, index)
+                    self.field.colors = self.get_new_field(self.field.colors, index)
             # score_update checks whether this function is used during a real game or AI learning
             if score_update:
                 self.score += self.points[killed_lines - 1] * self.level
@@ -337,7 +339,8 @@ class Tetris:
             if self.train:
                 if self.load_model or self.training.exp.current_index > self.training.max_memory / 10:
                     # Statistics
-                    holes = self.training.get_holes(self.field.values)
+                    b = (self.field.values!=0).argmax(axis=0)
+                    holes = self.training.get_holes(self.field.values, b)
                     self.all_holes.append(holes)
                     print("Epoch: %5d\tLevel: %2d\tScore: %7d\tPieces: %5d\tLines: %d\tTotal Moves: %d\tTime/Total Time: %.2f / %.2f" % (self.epochs, self.level, self.score, self.pieces, self.killed_lines, self.total_moves, game_time, self.total_time))
                     self.epochs += 1

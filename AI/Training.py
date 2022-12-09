@@ -27,14 +27,8 @@ class Training:
         self.exp = Experience(self.model_decide.input_shape[-1], self.model_decide.output_shape[-1], max_memory=self.max_memory)
 
     def get_reward(self, current_state, next_state):
-        return 1 + next_state[0]**2 * self.game.width
-        '''
-        if self.game.done:
-            return -1
-        else:
-            return 1 + next_state[0]**2 * self.game.width
+        #return 1 + next_state[0]**2 * self.game.width
         
-
         reward = 0.0
         # penalize if the game is over
         if self.game.done:
@@ -44,13 +38,13 @@ class Training:
             return 1 + next_state[0]**2 * self.game.width
         # different penalties if the amount of holes or height/bumpiness is increased compared to the previous state
         if next_state[1] > current_state[1]:
-            reward -= 0.4
+            reward -= 0.3
         if next_state[2] > current_state[2]:
             reward -= 0.2
         if next_state[3] > current_state[3]:
             reward -= 0.1
         return reward
-        '''
+        
     
     def get_height(self, column_height):
         return np.sum(column_height)
