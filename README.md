@@ -12,10 +12,20 @@ Can you beat Artificial Intelligence?
 
 - [@Hendrik](https://www.github.com/henne23)
 
+## Update 6/15/25
+
+The reward function was updated. Instead of rewarding only one thing in 
+a specific order (cleared_lines, holes, height, bumpiness), I provided one 
+reward based on the evaluation of all four characteristics.
+Furthermore, the AI will be penalized for creating stacks in the middle
+of the field and rewarded for creating clean lines on the bottom.
+This solved the issue of unstable results and let the agent clear
+lines on the bottom rather than in the middle of the field.
+
 
 ## Introduction
 
-This repository contents the basic Tetris environment where you
+This repository contains the basic Tetris environment where you
 can play the famous game manually. Furthermore it is extended with
 a Reinforcement Learning agent that learns to play Tetris with a
 Double Q-Learning algorithm.
@@ -62,6 +72,15 @@ These are the points:
 
 [1: 40, 2: 100, 3: 300, 4: 1200]
 
+## Results
+
+The following diagram shows the best score over a window of 250 games (this training does not include the best results what can be found in the Save-folder).
+
+<p align="center">
+    <img src ="Score over epochs.png"><br/>
+    <i> Score overview </i>
+</p>
+
 ## Requirements
 
 Python (3.7)\
@@ -73,20 +92,3 @@ numpy (1.21.6)\
 h5py (2.10.0)\
 protobuf (3.20)\
 pandas (1.3.5)
-
-## Misc
-
-It was noticeable that the results varied greatly. 
-Even after very successful games with several hundred cleared lines, 
-it happened that subsequent games ended after only a few tetrominos.
-
-The following diagram shows the best score over a window of 50 games (this training does not include the best results what can be found in the Save-folder).
-
-<p align="center">
-    <img src ="Score over epochs.png"><br/>
-    <i> Score overview </i>
-</p>
-
-Furthermore, it seemed as if the AI doest not strive to clear
-lines on the bottom of the game, but tends to clear rows in the
-middle of the field.

@@ -28,14 +28,47 @@ class Training:
 
     def get_reward(self, current_state, next_state):
         #return 1 + next_state[0]**2 * self.game.width
-        
+        cleared_lines = next_state[0]
+        holes = next_state[1]
+        height = next_state[2]
+        bumpiness = next_state[3]
         reward = 0.0
+
+        reward += cleared_lines * 5
+        if cleared_lines >= 2:
+            reward += (cleared_lines - 1) * 2
+        
+        reward -= .4 * holes
+
+        reward -= .2 * height
+
+        reward -= .1 * bumpiness
+
+        middle_column_index = self.game.field.values.shape[1] // 2
+        middle_stack_height = self.game.field.values[:, middle_column_index].nonzero()[0]
+        if len(middle_stack_height) > 0:
+            reward -= 0.1 * (self.game.field.values.shape[0] - middle_stack_height[0])  # Higher penalty for taller center stacks
+
+        # Encourage completely filled bottom row (board stability)
+        if np.all(self.game.field.values[-1] != 0):
+            reward += 1  # Tiny bonus for bottom-row stability
+
+        return reward
+
+        '''
         # penalize if the game is over
         if self.game.done:
             return -1
         # reward killed lines
         elif next_state[0]:
-            return 1 + next_state[0]**2 * self.game.width
+            #return 1 + next_state[0]**2 * self.game.width
+
+            # new approach: Reward killed lines, but lower reward for bottom holes
+            award = next_state[0] * 5
+            if np.any(self.game.field[-1] == 0):     # how to get the field_copy, if any hole exists after the lines have been cleared?
+                award -= 2
+            return award
+
         # different penalties if the amount of holes or height/bumpiness is increased compared to the previous state
         if next_state[1] > current_state[1]:
             reward -= 0.3
@@ -44,7 +77,7 @@ class Training:
         if next_state[3] > current_state[3]:
             reward -= 0.1
         return reward
-        
+        '''
     
     def get_height(self, column_height):
         return np.sum(column_height)

@@ -28,17 +28,24 @@ class Tetris:
         self.manual = bool
         self.train = bool
         self.darkmode = bool
+        self.new_training = bool
         # tkinter GUI for the four settings above
         Settings(self)
-        self.max_epochs = 3000
-        self.max_points = 500000
-        self.top = 50
+        self.max_epochs = 10000
+        self.max_points = 1000000
+        self.top = 250
         self.all_scores = []
         self.all_holes = []
         self.total_time = 0.0
         if not self.manual:
             from AI.Training import Training
-            self.load_model = True
+            if self.train:
+                if self.new_training:
+                    self.load_model = False
+                else:
+                    self.load_model = True
+            else:
+                self.load_model = True
             if self.train:
                 self.model_learn = self.create_model()
             else:
@@ -88,7 +95,7 @@ class Tetris:
         plt.xlabel("Epochs")
         plt.ylabel("Score")
         #plt.xticks(range(0,len(self.all_scores)-window_size,self.top))
-        plt.xticks(range(0, len(self.all_scores)-self.top, self.top))
+        plt.xticks(range(0, len(self.all_scores)-self.top, self.top), rotation=90)
         plt.savefig("Score by epoch.png")
         plt.show()
 
@@ -278,8 +285,8 @@ class Tetris:
             score_update = True
         lines = np.sum(field, axis=1)
         killed_lines = np.sum([x >= self.width for x in lines])
-        if killed_lines > 1:
-            print("Stop")
+        #if killed_lines > 1:
+        #    print("Stop")
         if killed_lines > 0:
             indices = [index for index, val in enumerate(lines) if val > 9]
             for index in indices:
@@ -318,14 +325,14 @@ class Tetris:
                     update = 0.0
                 self.control()
             elif self.training is not None:
-                '''
+                
                 if self.score > self.max_points:
                     self.done = True
                 else:
-                '''
-                self.training.train()
-                self.pieces += 1
-                self.total_moves += 1
+                
+                    self.training.train()
+                    self.pieces += 1
+                    self.total_moves += 1
 
             if self.graphics:
                 self.field.update(self)
